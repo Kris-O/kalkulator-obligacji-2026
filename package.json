@@ -1,0 +1,29 @@
+{
+  "name": "kalkulator-obligacji",
+  "version": "1.0.3",
+  "description": "Kalkulator Obligacji Skarbowych — model dwu-składnikowy zgodny z arkuszem Excel",
+  "main": "html/assets/calculator.js",
+  "dependencies": {
+    "docx": "^9.6.1",
+    "jpeg-js": "^0.4.4",
+    "lucide": "^1.8.0",
+    "marked": "^17.0.5",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.6.205",
+    "pixelmatch": "^7.2.0",
+    "playwright": "^1.60.0",
+    "pngjs": "^7.0.0",
+    "pptxgenjs": "^4.0.1",
+    "sharp": "^0.34.5",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "node test_calculator.mjs",
+    "build": "node build.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

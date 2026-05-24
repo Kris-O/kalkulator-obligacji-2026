@@ -1,0 +1,31 @@
+name: Test kalkulator obligacji
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  test:
+    name: Porównanie z arkuszem Excel (Scenariusz I)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Uruchom testy porównawcze
+        run: node test_calculator.mjs
+
+      # Jeśli test_calculator.mjs zwróci exit code != 0, krok powyżej failuje build.
+      # Kalkulator.js jest traktowany jako przejście testów jeśli
+      # wszystkie 96 wartości mieści się w tolerancji ±0,01 zł.
