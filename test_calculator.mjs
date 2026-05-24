@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const { calculate, DEFAULT_PARAMS } = require('./html/assets/calculator.js');
 
 // ── Oczekiwane wartości z arkusza Excel (Scenariusz I) ───────────────────────
-//    Wiersze 9-19 tabeli rocznej (OBLIGACJE!B9:K19)
+//    Wiersze 9-20 tabeli rocznej (OBLIGACJE!B9:K20) — lata 1..12
 const EXPECTED = {
   //       rok:  ROR            DOR            TOS            COI            EDO            ROS            ROD            KTO
   1:  { ROR: 103095.75841088484, DOR: 102651.8954837449,  TOS: 102754,               COI: 102227.50000000001, EDO: 101903.50000000001, ROS: 102430,               ROD: 102106,               KTO: 102955.28974864181 },
@@ -22,6 +22,7 @@ const EXPECTED = {
   9:  { ROR: 135802.61359284623, DOR: 134205.07654412443, TOS: 137660.44517422552,   COI: 131254.07349266455, EDO: 134256.1606744221,   ROS: 134714.94396596964, ROD: 139145.14433963204,    KTO: 129968.46407763565 },
   10: { ROR: 140555.36114942277, DOR: 139256.07545803348, TOS: 141593.40198295706,   COI: 135144.02743907025, EDO: 141511.2932620734,   ROS: 139361.5618096127,  ROD: 144783.6009792551,     KTO: 133809.40877298923 },
   11: { ROR: 145459.9041377715,  DOR: 143494.5526914894,  TOS: 146719.2705751451,    COI: 139148.94079568097, EDO: 144349.81241122517,  ROS: 144198.66338128742, ROD: 150681.42662430083,    KTO: 137763.8645131756  },
+  12: { ROR: 150521.25291400295, DOR: 148894.78529915755, TOS: 153185.1503303831,    COI: 145350.67094616155, EDO: 149305.5434319636,   ROS: 151225.037698078,   ROD: 159280.55224901868,    KTO: 141835.18587846626 },
 };
 
 const TOLERANCE = 0.01; // dopuszczalny błąd: 1 grosz
@@ -40,7 +41,7 @@ console.log('\n=== Test kalkulator vs Excel (Scenariusz I, 1000 obligacji) ===\n
 console.log('Rok  Instrument  Oczekiwane         Obliczone          Diff         Status');
 console.log('─'.repeat(85));
 
-for (let y = 1; y <= 11; y++) {
+for (let y = 1; y <= 12; y++) {
   const exp = EXPECTED[y];
   for (const t of types) {
     const expected = exp[t];
@@ -53,7 +54,7 @@ for (let y = 1; y <= 11; y++) {
       `${String(y).padStart(3)}  ${t.padEnd(10)}  ${expected.toFixed(5).padStart(17)}  ${(isNaN(computed) ? 'NaN' : computed.toFixed(5)).padStart(17)}  ${diff.toFixed(6).padStart(12)}  ${status}`
     );
   }
-  if (y < 11) console.log('');
+  if (y < 12) console.log('');
 }
 
 console.log('\n' + '─'.repeat(85));

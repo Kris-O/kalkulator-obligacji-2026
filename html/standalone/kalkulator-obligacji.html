@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kalkulator Obligacji Skarbowych</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+/* ============================================================
+   Kalkulator Obligacji Skarbowych — stylizacja
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:#1B2A4A;--navy-light:#243660;--navy-pale:#EEF1F8;
+  --green:#27AE60;--green-light:#2ECC71;--gold:#F39C12;--red:#E74C3C;
+  --white:#FFFFFF;--gray-50:#F8F9FA;--gray-100:#F1F3F5;--gray-200:#E9ECEF;
+  --gray-400:#ADB5BD;--gray-600:#6C757D;--gray-800:#343A40;
+  --radius:10px;--shadow:0 2px 12px rgba(27,42,74,.10);
+  --shadow-lg:0 8px 32px rgba(27,42,74,.16);--transition:180ms ease;
+  --font:'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+body { background:#F4F6FB; min-height:100vh; padding:24px 0; }
+.kalkulator-obligacji { font-family:var(--font);font-size:15px;color:var(--gray-800);max-width:1200px;margin:0 auto;padding:0 16px 48px; }
+.ko-header { background:linear-gradient(135deg,var(--navy) 0%,var(--navy-light) 100%);color:var(--white);border-radius:var(--radius);padding:32px 40px 28px;margin-bottom:24px;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;box-shadow:var(--shadow-lg); }
+.ko-header h1 { font-size:1.55rem;font-weight:700;letter-spacing:-.3px;line-height:1.25; }
+.ko-header p { opacity:.75;font-size:.9rem;margin-top:6px; }
+.ko-rates-badge { background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);border-radius:8px;padding:10px 16px;font-size:.82rem;min-width:200px;flex-shrink:0; }
+.ko-rates-badge strong { display:block;font-size:.78rem;opacity:.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em; }
+.ko-rates-badge .rate-row { display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.1); }
+.ko-rates-badge .rate-row:last-child { border:none; }
+.ko-rates-badge .rate-val { font-weight:600;color:var(--gold); }
+.ko-tabs { display:flex;gap:4px;background:var(--gray-100);border-radius:var(--radius);padding:4px;margin-bottom:20px;overflow-x:auto; }
+.ko-tab { flex:1;min-width:120px;padding:10px 18px;border:none;background:transparent;border-radius:7px;cursor:pointer;font-size:.88rem;font-weight:500;color:var(--gray-600);transition:var(--transition);white-space:nowrap;text-align:center; }
+.ko-tab:hover { background:rgba(27,42,74,.06);color:var(--navy); }
+.ko-tab.active { background:var(--white);color:var(--navy);font-weight:600;box-shadow:0 1px 6px rgba(27,42,74,.12); }
+.ko-panel { display:none; }
+.ko-panel.active { display:block;animation:fadeIn .18s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.ko-card { background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);padding:24px;margin-bottom:16px;box-shadow:var(--shadow); }
+.ko-card h2 { font-size:1rem;font-weight:600;color:var(--navy);margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid var(--navy-pale); }
+.ko-form-row { display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:20px; }
+.ko-field label { display:block;font-size:.82rem;font-weight:600;color:var(--gray-600);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px; }
+.ko-field input[type=number],.ko-field select { width:100%;padding:10px 14px;border:1.5px solid var(--gray-200);border-radius:7px;font-size:.95rem;color:var(--gray-800);background:var(--white);transition:border-color var(--transition),box-shadow var(--transition);appearance:none; }
+.ko-field input[type=number]:focus,.ko-field select:focus { outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(27,42,74,.1); }
+.ko-field input.ko-invalid { border-color:var(--red); }
+.ko-field .unit { display:flex;align-items:center;gap:8px; }
+.ko-field .unit input { flex:1; }
+.ko-field .unit span { font-size:.85rem;color:var(--gray-600);white-space:nowrap;font-weight:500; }
+.ko-scenario-toggle { display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap; }
+.ko-scenario-btn { padding:9px 20px;border:2px solid var(--gray-200);border-radius:7px;background:var(--white);cursor:pointer;font-size:.88rem;font-weight:500;color:var(--gray-600);transition:var(--transition); }
+.ko-scenario-btn.active { border-color:var(--navy);background:var(--navy);color:var(--white); }
+.ko-scenario-table-wrap { overflow-x:auto; }
+.ko-scenario-table { width:100%;border-collapse:collapse;font-size:.88rem; }
+.ko-scenario-table th { background:var(--navy-pale);color:var(--navy);font-weight:600;text-align:center;padding:10px 8px;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em; }
+.ko-scenario-table th:first-child { text-align:left; }
+.ko-scenario-table td { padding:7px 8px;text-align:center;border-bottom:1px solid var(--gray-100); }
+.ko-scenario-table td:first-child { font-weight:600;color:var(--gray-600);text-align:left; }
+.ko-scenario-table tr:hover td { background:var(--gray-50); }
+.ko-scenario-table input[type=number] { width:80px;padding:5px 7px;border:1.5px solid var(--gray-200);border-radius:5px;text-align:right;font-size:.88rem; }
+.ko-scenario-table input[type=number]:focus { outline:none;border-color:var(--navy); }
+.ko-results-wrap { overflow-x:auto; }
+.ko-results-table { width:100%;border-collapse:collapse;font-size:.86rem;min-width:700px; }
+.ko-results-table thead th { position:sticky;top:0;background:var(--navy);color:var(--white);padding:11px 12px;font-weight:600;text-align:right;font-size:.8rem;letter-spacing:.03em;z-index:2; }
+.ko-results-table thead th:first-child { text-align:left;border-radius:var(--radius) 0 0 0; }
+.ko-results-table thead th:last-child { border-radius:0 var(--radius) 0 0; }
+.ko-results-table tbody tr:nth-child(even) td { background:var(--gray-50); }
+.ko-results-table tbody tr:hover td { background:var(--navy-pale); }
+.ko-results-table td { padding:10px 12px;text-align:right;border-bottom:1px solid var(--gray-200);color:var(--gray-800);font-variant-numeric:tabular-nums; }
+.ko-results-table td:first-child { text-align:left;font-weight:600;color:var(--navy);white-space:nowrap; }
+.ko-results-table .best { color:var(--green);font-weight:700; }
+.ko-results-table .worst { color:var(--red); }
+.ko-results-table .ret-row td { font-size:.82rem;color:var(--gray-600);border-bottom:2px solid var(--gray-200); }
+.ko-results-table .ret-row .best { color:var(--green); }
+.ko-chart-wrap { position:relative;height:360px;margin-bottom:8px; }
+.ko-legend { display:flex;flex-wrap:wrap;gap:10px 20px;margin-top:12px;font-size:.83rem; }
+.ko-legend-item { display:flex;align-items:center;gap:6px;cursor:pointer;padding:4px 8px;border-radius:5px;transition:background var(--transition); }
+.ko-legend-item:hover { background:var(--gray-100); }
+.ko-legend-dot { width:12px;height:12px;border-radius:50%;flex-shrink:0; }
+.ko-legend-item.hidden { opacity:.35; }
+.ko-highlight-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px; }
+.ko-highlight-card { background:var(--navy-pale);border:1px solid var(--gray-200);border-radius:var(--radius);padding:16px 16px 12px;text-align:center; }
+.ko-highlight-card .hc-label { font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;color:var(--gray-600);font-weight:600;margin-bottom:6px; }
+.ko-highlight-card .hc-value { font-size:1.25rem;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums; }
+.ko-highlight-card .hc-sub { font-size:.78rem;color:var(--gray-600);margin-top:4px; }
+.ko-highlight-card.best { border-color:var(--green);background:#F0FAF4; }
+.ko-highlight-card.best .hc-value { color:var(--green); }
+.ko-detail-controls { display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap; }
+.ko-detail-controls label { font-weight:600;font-size:.88rem;color:var(--gray-600); }
+.ko-detail-controls select { padding:8px 14px;border:1.5px solid var(--gray-200);border-radius:7px;font-size:.9rem;color:var(--navy);font-weight:500;background:var(--white); }
+.ko-detail-controls select:focus { outline:none;border-color:var(--navy); }
+.ko-monthly-wrap { overflow-x:auto;max-height:500px;overflow-y:auto; }
+.ko-monthly-table { width:100%;border-collapse:collapse;font-size:.84rem;min-width:400px; }
+.ko-monthly-table thead th { position:sticky;top:0;background:var(--navy);color:var(--white);padding:9px 14px;text-align:right;z-index:1; }
+.ko-monthly-table thead th:first-child { text-align:left; }
+.ko-monthly-table td { padding:7px 14px;border-bottom:1px solid var(--gray-100);text-align:right;font-variant-numeric:tabular-nums; }
+.ko-monthly-table td:first-child { text-align:left;font-weight:500;color:var(--gray-600); }
+.ko-monthly-table tr:nth-child(12n) td { background:var(--navy-pale);font-weight:600;border-bottom:2px solid var(--gray-300); }
+.ko-monthly-table .gain { color:var(--green); }
+.ko-monthly-table .loss { color:var(--red); }
+.ko-btn-primary { display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:var(--white);border:none;border-radius:8px;padding:12px 28px;font-size:.95rem;font-weight:600;cursor:pointer;transition:background var(--transition),transform var(--transition),box-shadow var(--transition);box-shadow:0 2px 8px rgba(27,42,74,.2); }
+.ko-btn-primary:hover { background:var(--navy-light);box-shadow:var(--shadow-lg);transform:translateY(-1px); }
+.ko-btn-primary:active { transform:none; }
+.ko-btn-primary svg { width:18px;height:18px; }
+.ko-btn-secondary { display:inline-flex;align-items:center;gap:6px;background:transparent;color:var(--navy);border:2px solid var(--navy);border-radius:8px;padding:10px 22px;font-size:.9rem;font-weight:600;cursor:pointer;transition:var(--transition); }
+.ko-btn-secondary:hover { background:var(--navy-pale); }
+.ko-disclaimer { margin-top:24px;padding:14px 18px;background:#FFF8E1;border-left:4px solid var(--gold);border-radius:6px;font-size:.82rem;color:#7B6007;line-height:1.6; }
+@media(max-width:700px){
+  .ko-header{padding:20px;flex-direction:column}
+  .ko-header h1{font-size:1.25rem}
+  .ko-rates-badge{min-width:unset;width:100%}
+  .ko-tab{font-size:.8rem;padding:8px 10px}
+  .ko-card{padding:16px}
+  .ko-form-row{grid-template-columns:1fr 1fr}
+  .ko-highlight-grid{grid-template-columns:repeat(2,1fr)}
+  .ko-chart-wrap{height:260px}
+}
+@media(max-width:440px){
+  .ko-form-row{grid-template-columns:1fr}
+  .ko-highlight-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="kalkulator-obligacji" id="ko-app">
+
+  <!-- HEADER -->
+  <div class="ko-header">
+    <div>
+      <h1>Kalkulator Obligacji Skarbowych</h1>
+      <p>Porównaj 7 typów obligacji PKO z kontem oszczędnościowym na 12 lat</p>
+    </div>
+    <div class="ko-rates-badge" id="ko-rates-badge">
+      <strong>Parametry domyślne (Scenariusz I, maj 2026)</strong>
+      <div class="rate-row"><span>Stopa NBP</span><span class="rate-val" id="ko-badge-nbp">3,75%</span></div>
+      <div class="rate-row"><span>WIBOR 6M</span><span class="rate-val" id="ko-badge-wibor">3,88%</span></div>
+      <div class="rate-row" style="font-size:.76rem;opacity:.6;border:none;padding-top:6px">
+        <span>Źródło:</span><span id="ko-badge-date">maj 2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="ko-tabs" role="tablist">
+    <button class="ko-tab active" data-tab="zalozenia"  role="tab">&#9881; Założenia</button>
+    <button class="ko-tab"        data-tab="porownanie" role="tab">&#128200; Porównanie</button>
+    <button class="ko-tab"        data-tab="realna"     role="tab">&#128178; Wartość realna</button>
+    <button class="ko-tab"        data-tab="szczegoly"  role="tab">&#128203; Szczegóły</button>
+  </div>
+
+  <!-- PANEL: ZAŁOŻENIA -->
+  <div class="ko-panel active" id="panel-zalozenia">
+    <div class="ko-card">
+      <h2>Parametry inwestycji</h2>
+      <div class="ko-form-row">
+        <div class="ko-field">
+          <label>Liczba obligacji</label>
+          <div class="unit"><input type="number" id="ko-bond-count" value="1000" min="1" max="100000" step="1"><span>szt.</span></div>
+        </div>
+        <div class="ko-field">
+          <label>Wartość inwestycji</label>
+          <div class="unit"><input type="number" id="ko-invest-value" value="100000" readonly style="background:#f8f9fa"><span>zł</span></div>
+        </div>
+        <div class="ko-field">
+          <label>Podatek Belki</label>
+          <div class="unit"><input type="number" id="ko-tax" value="19" min="0" max="100" step="0.5"><span>%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ko-card">
+      <h2>Scenariusz makroekonomiczny</h2>
+      <p style="font-size:.85rem;color:var(--gray-600);margin-bottom:14px">Wprowadź założenia dla każdego roku lub użyj jednolitej wartości dla całego okresu.</p>
+      <div class="ko-scenario-toggle">
+        <button class="ko-scenario-btn active" data-mode="uniform">Jednolity (ta sama wartość każdy rok)</button>
+        <button class="ko-scenario-btn"        data-mode="yearly">Własny (różne wartości dla każdego roku)</button>
+      </div>
+      <div id="ko-uniform-inputs">
+        <div class="ko-form-row">
+          <div class="ko-field"><label>Inflacja</label><div class="unit"><input type="number" id="u-inflation" value="2.1" min="0" max="50" step="0.1"><span>%/rok</span></div></div>
+          <div class="ko-field"><label>Stopa NBP</label><div class="unit"><input type="number" id="u-nbp" value="3.75" min="0" max="30" step="0.01"><span>%/rok</span></div></div>
+          <div class="ko-field"><label>WIBOR 6M</label><div class="unit"><input type="number" id="u-wibor" value="3.88" min="0" max="30" step="0.01"><span>%/rok</span></div></div>
+          <div class="ko-field"><label>Konto oszczędnościowe</label><div class="unit"><input type="number" id="u-savings" value="3.60" min="0" max="30" step="0.01"><span>%/rok</span></div></div>
+        </div>
+      </div>
+      <div id="ko-yearly-inputs" style="display:none">
+        <div class="ko-scenario-table-wrap">
+          <table class="ko-scenario-table">
+            <thead><tr><th>Rok</th><th>Inflacja (%)</th><th>Stopa NBP (%)</th><th>WIBOR 6M (%)</th><th>Konto oszcz. (%)</th></tr></thead>
+            <tbody id="ko-scenario-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <button class="ko-btn-primary" id="ko-calc-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Oblicz
+      </button>
+      <button class="ko-btn-secondary" id="ko-reset-btn">Przywróć domyślne</button>
+    </div>
+  </div>
+
+  <!-- PANEL: PORÓWNANIE -->
+  <div class="ko-panel" id="panel-porownanie">
+    <div class="ko-card">
+      <h2>Wynik po 12 latach (wartość nominalna)</h2>
+      <div class="ko-highlight-grid" id="ko-highlights"></div>
+    </div>
+    <div class="ko-card">
+      <h2>Wartość nominalna na koniec roku (zł)</h2>
+      <div class="ko-results-wrap">
+        <table class="ko-results-table" id="ko-nominal-table">
+          <thead><tr><th>Rok</th><th>ROR<br><small>1-roczna</small></th><th>DOR<br><small>2-letnia</small></th><th>TOS<br><small>3-letnia</small></th><th>COI<br><small>4-letnia</small></th><th>ROS<br><small>6-letnia</small></th><th>EDO<br><small>10-letnia</small></th><th>ROD<br><small>12-letnia</small></th><th>Konto<br><small>oszcz.</small></th></tr></thead>
+          <tbody id="ko-nominal-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ko-card">
+      <h2>Wykres — wzrost wartości nominalnej</h2>
+      <div class="ko-chart-wrap"><canvas id="ko-chart-nominal"></canvas></div>
+      <div class="ko-legend" id="ko-legend-nominal"></div>
+    </div>
+  </div>
+
+  <!-- PANEL: WARTOŚĆ REALNA -->
+  <div class="ko-panel" id="panel-realna">
+    <div class="ko-card">
+      <h2>Wartość realna (po uwzględnieniu inflacji, zł)</h2>
+      <p style="font-size:.84rem;color:var(--gray-600);margin-bottom:16px">Wartości sprowadzone do siły nabywczej z dnia zakupu. Powyżej 100 000 zł = realny zysk.</p>
+      <div class="ko-results-wrap">
+        <table class="ko-results-table">
+          <thead><tr><th>Rok</th><th>ROR</th><th>DOR</th><th>TOS</th><th>COI</th><th>ROS</th><th>EDO</th><th>ROD</th><th>Konto</th></tr></thead>
+          <tbody id="ko-real-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ko-card">
+      <h2>Wykres — realna stopa zwrotu (%)</h2>
+      <div class="ko-chart-wrap"><canvas id="ko-chart-real"></canvas></div>
+      <div class="ko-legend" id="ko-legend-real"></div>
+    </div>
+  </div>
+
+  <!-- PANEL: SZCZEGÓŁY -->
+  <div class="ko-panel" id="panel-szczegoly">
+    <div class="ko-card">
+      <h2>Miesięczny przebieg wartości</h2>
+      <div class="ko-detail-controls">
+        <label for="ko-detail-select">Instrument:</label>
+        <select id="ko-detail-select">
+          <option value="ROR">ROR — 1-roczna</option>
+          <option value="DOR">DOR — 2-letnia</option>
+          <option value="TOS">TOS — 3-letnia (stała 4,40%)</option>
+          <option value="COI">COI — 4-letnia (inflacja)</option>
+          <option value="ROS">ROS — 6-letnia (inflacja)</option>
+          <option value="EDO">EDO — 10-letnia (inflacja)</option>
+          <option value="ROD">ROD — 12-letnia (inflacja)</option>
+          <option value="KTO">Konto oszczędnościowe</option>
+        </select>
+      </div>
+      <div class="ko-monthly-wrap">
+        <table class="ko-monthly-table">
+          <thead><tr><th style="text-align:left">Miesiąc</th><th>Wartość (zł)</th><th>Zysk (zł)</th><th>Zysk (%)</th></tr></thead>
+          <tbody id="ko-monthly-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCLAIMER -->
+  <div class="ko-disclaimer">
+    <strong>&#9888; Uwaga:</strong> Kalkulator ma charakter wyłącznie informacyjny i edukacyjny.
+    Wyniki obliczeń opierają się na założeniach scenariuszowych i nie stanowią doradztwa inwestycyjnego.
+    Rzeczywiste oprocentowanie obligacji może różnić się od prezentowanych wartości.
+    Przed podjęciem decyzji inwestycyjnej zapoznaj się z aktualnymi warunkami emisji obligacji PKO.
+  </div>
+</div><!-- /.kalkulator-obligacji -->
+
+<script>
+/**
+ * Kalkulator Obligacji Skarbowych v2.0
+ * Model dwu-składnikowy zgodny 1:1 z arkuszem Excel "Finanse Bardzo Osobiste"
+ *
+ * Każda obligacja jest wyceniana jako suma dwóch składników:
+ *   (1) wartość wykupu (redemption) — co dostaniesz przy wcześniejszym wykupie dziś
+ *   (2) konto oszczędnościowe (savings) — skumulowane kupony/odsetki reinwestowane
+ *
+ * Wynik miesięczny = savings_{t-1} × (1 + savRate/12 × (1-tax)) + redemption_t
+ */
+'use strict';
+
+const BONDS = {
+  ROR: { name: 'ROR', label: '1-roczna (ROR)',  months: 12,  base: 'nbp',       margin: 0.000, couponType: 'monthly',    feePerBond: 0.5, fixedPeriod1Rate: 0.0400, zamiana: 99.9 },
+  DOR: { name: 'DOR', label: '2-letnia (DOR)',  months: 24,  base: 'nbp',       margin: 0.0015,couponType: 'monthly',    feePerBond: 0.7, fixedPeriod1Rate: 0.0415, zamiana: 99.9 },
+  TOS: { name: 'TOS', label: '3-letnia (TOS)',  months: 36,  base: 'fixed',     margin: 0.000, couponType: 'capitalize', feePerBond: 1.0, fixedPeriod1Rate: 0.0440, zamiana: 99.9 },
+  COI: { name: 'COI', label: '4-letnia (COI)',  months: 48,  base: 'inflation', margin: 0.015, couponType: 'annual',     feePerBond: 2.0, fixedPeriod1Rate: 0.0475, zamiana: 99.9 },
+  ROS: { name: 'ROS', label: '6-letnia (ROS)',  months: 72,  base: 'inflation', margin: 0.020, couponType: 'capitalize', feePerBond: 2.0, fixedPeriod1Rate: 0.0500, zamiana: 100  },
+  EDO: { name: 'EDO', label: '10-letnia (EDO)', months: 120, base: 'inflation', margin: 0.020, couponType: 'capitalize', feePerBond: 3.0, fixedPeriod1Rate: 0.0535, zamiana: 99.9 },
+  ROD: { name: 'ROD', label: '12-letnia (ROD)', months: 144, base: 'inflation', margin: 0.025, couponType: 'capitalize', feePerBond: 3.0, fixedPeriod1Rate: 0.0560, zamiana: 100  },
+};
+
+const TOTAL_MONTHS = 145;
+
+function calculate(params) {
+  const { bondCount, taxRate, inflation, nbpRate, savingsRate } = params;
+  const initialValue = bondCount * 100;
+
+  const results = {};
+
+  for (const [key, bond] of Object.entries(BONDS)) {
+    results[key] = calcBond(bond, params, TOTAL_MONTHS);
+  }
+
+  results.KTO = calcSavings(initialValue, taxRate, savingsRate, TOTAL_MONTHS);
+
+  const cumulativeInflation = calcCumulativeInflation(inflation, TOTAL_MONTHS);
+  results.REAL = {};
+  for (const key of Object.keys(results)) {
+    if (key === 'REAL') continue;
+    results.REAL[key] = results[key].map((v, i) => v / (cumulativeInflation[i] || 1));
+  }
+
+  const annual = buildAnnualSummary(results, initialValue, cumulativeInflation);
+  return { monthly: results, annual, cumulativeInflation, initialValue };
+}
+
+function calcBond(bond, params, totalMonths) {
+  const { months: maturityMonths, base, margin, couponType, feePerBond, fixedPeriod1Rate, zamiana } = bond;
+  const { bondCount: initBonds, taxRate, inflation, nbpRate, savingsRate } = params;
+
+  const monthly = new Array(totalMonths + 1).fill(0);
+  monthly[0] = initBonds * 100;
+
+  let bondCount    = initBonds;
+  let originalFace = bondCount * 100;
+  let capBase      = originalFace;
+  let savings      = 0;
+  let periodMonth  = 1;
+  let prevMaturity = false;
+
+  for (let m = 1; m <= totalMonths; m++) {
+    const simYear    = Math.ceil(m / 12);
+    const yearIdx    = Math.min(simYear, 12) - 1;
+    const yearInPer  = Math.ceil(periodMonth / 12);
+    const monthInYr  = ((periodMonth - 1) % 12) + 1;
+
+    let rate;
+    if (base === 'fixed') {
+      rate = fixedPeriod1Rate;
+    } else if (couponType === 'monthly') {
+      rate = (periodMonth === 1)
+        ? fixedPeriod1Rate
+        : (nbpRate[yearIdx] + margin);
+    } else {
+      if (yearInPer === 1) {
+        rate = fixedPeriod1Rate;
+      } else {
+        rate = ((base === 'inflation') ? inflation[yearIdx] : nbpRate[yearIdx]) + margin;
+      }
+    }
+
+    const gross = (couponType === 'monthly')
+      ? capBase * (1 + rate / 12)
+      : capBase * (1 + rate * monthInYr / 12);
+
+    const isMaturity   = (periodMonth === maturityMonths);
+    const isProtection = (periodMonth === 1);
+
+    let fee;
+    if (isMaturity) {
+      fee = 0;
+    } else if (isProtection) {
+      fee = Math.min(gross - originalFace, bondCount * feePerBond);
+    } else {
+      fee = bondCount * feePerBond;
+    }
+    fee = Math.max(0, fee);
+
+    const redemption = gross - fee - (gross - originalFace - fee) * taxRate;
+
+    let toSavings = 0;
+
+    if (couponType === 'monthly') {
+      const coupon = gross - capBase;
+      toSavings = coupon * (1 - taxRate);
+      if (isMaturity) {
+        toSavings += Math.floor(gross / zamiana) * 0.1;
+      }
+
+    } else if (couponType === 'annual') {
+      if (monthInYr === 12) {
+        if (isMaturity) {
+          toSavings = redemption - Math.floor(redemption / zamiana) * zamiana;
+        } else {
+          toSavings = (gross - capBase) * (1 - taxRate);
+        }
+      }
+
+    } else {
+      if (isMaturity) {
+        toSavings = redemption - Math.floor(redemption / zamiana) * zamiana;
+      }
+    }
+
+    const savingsReduction = (prevMaturity && couponType !== 'capitalize')
+      ? Math.floor(savings / 100) * 100
+      : 0;
+
+    const savGrowth = savingsRate[yearIdx] / 12 * (1 - taxRate);
+
+    const result = savings * (1 + savGrowth) + redemption;
+    monthly[m] = result;
+
+    savings = (savings - savingsReduction) * (1 + savGrowth) + toSavings;
+
+    if (!isMaturity && couponType === 'capitalize' && monthInYr === 12) {
+      capBase = gross;
+    }
+
+    if (isMaturity) {
+      const newFromRedemption = Math.floor(redemption / zamiana);
+      const newFromSavings = (couponType !== 'capitalize')
+        ? Math.floor(savings / 100)
+        : 0;
+
+      bondCount    = newFromRedemption + newFromSavings;
+      originalFace = bondCount * 100;
+      capBase      = originalFace;
+      periodMonth  = 1;
+      prevMaturity = true;
+    } else {
+      periodMonth++;
+      prevMaturity = false;
+    }
+  }
+
+  return monthly;
+}
+
+function calcSavings(initialValue, taxRate, savingsRate, totalMonths) {
+  const monthly = new Array(totalMonths + 1).fill(0);
+  monthly[0] = initialValue;
+  let balance = initialValue;
+
+  for (let m = 1; m <= totalMonths; m++) {
+    const idx = Math.min(Math.ceil(m / 12), 12) - 1;
+    balance *= (1 + savingsRate[idx] / 12 * (1 - taxRate));
+    monthly[m] = balance;
+  }
+  return monthly;
+}
+
+function calcCumulativeInflation(inflation, totalMonths) {
+  const cumulative = new Array(totalMonths + 1).fill(1);
+  for (let m = 1; m <= totalMonths; m++) {
+    const idx = Math.min(Math.ceil(m / 12), 12) - 1;
+    cumulative[m] = cumulative[m - 1] * (1 + (inflation[idx] || 0) / 12);
+  }
+  return cumulative;
+}
+
+function buildAnnualSummary(results, initialValue, cumulativeInflation) {
+  const years = 12;
+  const keys = Object.keys(results).filter(k => k !== 'REAL');
+  const annual = { nominal: {}, return: {}, real: {}, realReturn: {} };
+
+  for (const key of keys) {
+    annual.nominal[key]    = [];
+    annual.return[key]     = [];
+    annual.real[key]       = [];
+    annual.realReturn[key] = [];
+
+    for (let y = 1; y <= years; y++) {
+      const m       = y * 12;
+      const nomVal  = results[key][m] || 0;
+      const realVal = nomVal / (cumulativeInflation[m] || 1);
+      annual.nominal[key].push(nomVal);
+      annual.return[key].push((nomVal - initialValue) / initialValue);
+      annual.real[key].push(realVal);
+      annual.realReturn[key].push((realVal - initialValue) / initialValue);
+    }
+  }
+
+  annual.years        = Array.from({ length: years }, (_, i) => i + 1);
+  annual.initialValue = initialValue;
+  return annual;
+}
+
+const DEFAULT_PARAMS = {
+  bondCount:   1000,
+  taxRate:     0.19,
+  inflation:   new Array(12).fill(0.021),
+  nbpRate:     new Array(12).fill(0.0375),
+  wibor6m:     new Array(12).fill(0.0388),
+  savingsRate: new Array(12).fill(0.036),
+};
+
+window.BondCalculator = { calculate, BONDS, DEFAULT_PARAMS };
+</script>
+
+<script>
+/* ========================================================
+   UI + wykresy (Chart.js)
+   ======================================================== */
+(function(){
+'use strict';
+const COLORS={ROR:'#3498DB',DOR:'#9B59B6',TOS:'#E67E22',COI:'#27AE60',ROS:'#1ABC9C',EDO:'#2C3E50',ROD:'#E74C3C',KTO:'#95A5A6'};
+const BOND_KEYS=['ROR','DOR','TOS','COI','ROS','EDO','ROD','KTO'];
+const BOND_LABELS={
+  ROR:'ROR (1-roczna)',
+  DOR:'DOR (2-letnia)',
+  TOS:'TOS (3-letnia, stała 4,40%)',
+  COI:'COI (4-letnia, inflacja)',
+  ROS:'ROS (6-letnia, inflacja)',
+  EDO:'EDO (10-letnia, inflacja)',
+  ROD:'ROD (12-letnia, inflacja)',
+  KTO:'Konto oszczędnościowe',
+};
+// Domyślny scenariusz roczny — wartości malejące (normalizacja stóp)
+const DEFAULTS_YEARLY={
+  inflation:[2.1,2.5,2.8,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0,3.0],
+  nbp:      [3.75,3.50,3.25,3.00,3.00,3.00,3.00,3.00,3.00,3.00,3.00,3.00],
+  wibor:    [3.88,3.63,3.38,3.13,3.13,3.13,3.13,3.13,3.13,3.13,3.13,3.13],
+  savings:  [3.60,3.40,3.20,3.00,3.00,3.00,3.00,3.00,3.00,3.00,3.00,3.00],
+};
+let lastResults=null,chartNominal=null,chartReal=null,scenarioMode='uniform';
+
+function fmt(n){return new Intl.NumberFormat('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);}
+function fmtShort(n){if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+' mln';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(0)+' tys.';return n.toFixed(0);}
+
+function buildScenarioTable(){
+  const tbody=document.getElementById('ko-scenario-tbody');
+  if(!tbody)return;
+  let html='';
+  for(let y=1;y<=12;y++){
+    const i=y-1;
+    html+=`<tr><td><strong>Rok ${y}</strong></td>
+      <td><input type="number" class="yr-inflation" data-y="${i}" value="${DEFAULTS_YEARLY.inflation[i]}" min="0" max="50" step="0.1"></td>
+      <td><input type="number" class="yr-nbp"       data-y="${i}" value="${DEFAULTS_YEARLY.nbp[i]}"       min="0" max="30" step="0.01"></td>
+      <td><input type="number" class="yr-wibor"     data-y="${i}" value="${DEFAULTS_YEARLY.wibor[i]}"     min="0" max="30" step="0.01"></td>
+      <td><input type="number" class="yr-savings"   data-y="${i}" value="${DEFAULTS_YEARLY.savings[i]}"   min="0" max="30" step="0.01"></td>
+    </tr>`;
+  }
+  tbody.innerHTML=html;
+}
+
+function bindEvents(){
+  const countEl=document.getElementById('ko-bond-count');
+  const valEl=document.getElementById('ko-invest-value');
+  if(countEl&&valEl){
+    countEl.addEventListener('input',()=>{
+      const v=parseInt(countEl.value)||0;
+      valEl.value=v*100;
+      countEl.classList.toggle('ko-invalid',v<1||v>100000);
+    });
+  }
+  document.getElementById('ko-calc-btn')?.addEventListener('click',runCalculation);
+  document.getElementById('ko-reset-btn')?.addEventListener('click',resetDefaults);
+  document.querySelectorAll('.ko-scenario-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      scenarioMode=btn.dataset.mode;
+      document.querySelectorAll('.ko-scenario-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('ko-uniform-inputs').style.display=scenarioMode==='uniform'?'':'none';
+      document.getElementById('ko-yearly-inputs').style.display=scenarioMode==='yearly'?'':'none';
+    });
+  });
+  document.querySelectorAll('.ko-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      document.querySelectorAll('.ko-tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.ko-panel').forEach(p=>p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-'+tab.dataset.tab)?.classList.add('active');
+      if(lastResults)setTimeout(()=>{chartNominal?.resize();chartReal?.resize();},50);
+    });
+  });
+  document.getElementById('ko-detail-select')?.addEventListener('change',e=>{
+    if(lastResults)renderMonthlyTable(e.target.value,lastResults);
+  });
+  let debounce;
+  document.getElementById('ko-app')?.addEventListener('input',e=>{
+    if(e.target.closest('#ko-scenario-tbody')||e.target.closest('#ko-uniform-inputs')||e.target.id==='ko-bond-count'||e.target.id==='ko-tax'){
+      clearTimeout(debounce);debounce=setTimeout(runCalculation,600);
+    }
+  });
+}
+
+function getParams(){
+  const bondCount=Math.max(1,Math.min(100000,parseInt(document.getElementById('ko-bond-count')?.value)||1000));
+  const taxRate=Math.max(0,Math.min(1,(parseFloat(document.getElementById('ko-tax')?.value)||19)/100));
+  let inflation,nbpRate,wibor6m,savingsRate;
+  if(scenarioMode==='uniform'){
+    const inf=Math.max(0,parseFloat(document.getElementById('u-inflation')?.value)/100)||0.021;
+    const nbp=Math.max(0,parseFloat(document.getElementById('u-nbp')?.value)/100)||0.0375;
+    const wib=Math.max(0,parseFloat(document.getElementById('u-wibor')?.value)/100)||0.0388;
+    const sav=Math.max(0,parseFloat(document.getElementById('u-savings')?.value)/100)||0.036;
+    inflation=Array(12).fill(inf);nbpRate=Array(12).fill(nbp);
+    wibor6m=Array(12).fill(wib);savingsRate=Array(12).fill(sav);
+  }else{
+    const read=cls=>{const v=[];document.querySelectorAll('.'+cls).forEach(el=>{v[parseInt(el.dataset.y)]=Math.max(0,parseFloat(el.value)/100)||0;});return v;};
+    inflation=read('yr-inflation');nbpRate=read('yr-nbp');
+    wibor6m=read('yr-wibor');savingsRate=read('yr-savings');
+  }
+  return{bondCount,taxRate,inflation,nbpRate,wibor6m,savingsRate};
+}
+
+function runCalculation(){
+  const params=getParams();
+  lastResults=BondCalculator.calculate(params);
+  renderHighlights(lastResults);
+  renderNominalTable(lastResults);
+  renderRealTable(lastResults);
+  renderChartNominal(lastResults);
+  renderChartReal(lastResults);
+  const sel=document.getElementById('ko-detail-select')?.value||'ROR';
+  renderMonthlyTable(sel,lastResults);
+}
+
+function renderHighlights(res){
+  const c=document.getElementById('ko-highlights');if(!c)return;
+  const yr12=11;const init=res.annual.initialValue;
+  let bestKey=null,bestVal=0;
+  for(const k of BOND_KEYS){const v=res.annual.nominal[k]?.[yr12]||0;if(v>bestVal){bestVal=v;bestKey=k;}}
+  let html='';
+  for(const k of BOND_KEYS){
+    const v=res.annual.nominal[k]?.[yr12]||0;
+    const gain=((v-init)/init*100).toFixed(1);
+    const isBest=k===bestKey;
+    html+=`<div class="ko-highlight-card${isBest?' best':''}">
+      <div class="hc-label">${BOND_LABELS[k]}</div>
+      <div class="hc-value">${fmt(v)} zł</div>
+      <div class="hc-sub">+${gain}% po 12 latach${isBest?' 🏆':''}</div>
+    </div>`;
+  }
+  c.innerHTML=html;
+}
+
+function renderNominalTable(res){
+  const tbody=document.getElementById('ko-nominal-tbody');if(!tbody)return;
+  const{annual}=res;const init=annual.initialValue;
+  let html=`<tr><td>Start</td>${BOND_KEYS.map(()=>`<td>${fmt(init)}</td>`).join('')}</tr>`;
+  for(let y=0;y<12;y++){
+    const vals=BOND_KEYS.map(k=>annual.nominal[k]?.[y]||0);
+    const mx=Math.max(...vals);
+    html+=`<tr><td>Rok ${y+1}</td>${vals.map(v=>`<td class="${v===mx?'best':''}">${fmt(v)}</td>`).join('')}</tr>`;
+    if((y+1)%4===0||y===11){
+      const rets=BOND_KEYS.map(k=>(annual.return[k]?.[y]||0)*100);
+      const mr=Math.max(...rets);
+      html+=`<tr class="ret-row"><td style="font-size:.78rem;color:var(--gray-400)">zwrot %</td>${rets.map(r=>`<td class="${r===mr?'best':''}">${r>=0?'+':''}${r.toFixed(1)}%</td>`).join('')}</tr>`;
+    }
+  }
+  tbody.innerHTML=html;
+}
+
+function renderRealTable(res){
+  const tbody=document.getElementById('ko-real-tbody');if(!tbody)return;
+  const{annual}=res;const init=annual.initialValue;
+  let html='';
+  for(let y=0;y<12;y++){
+    const vals=BOND_KEYS.map(k=>annual.real[k]?.[y]||0);
+    const mx=Math.max(...vals);
+    html+=`<tr><td>Rok ${y+1}</td>${vals.map(v=>`<td class="${v===mx?'best':v<init?'worst':''}">${fmt(v)}</td>`).join('')}</tr>`;
+  }
+  tbody.innerHTML=html;
+}
+
+function renderMonthlyTable(key,res){
+  const tbody=document.getElementById('ko-monthly-tbody');if(!tbody)return;
+  const data=res.monthly[key]||[];const init=res.annual.initialValue;
+  let html='';
+  for(let m=1;m<=144;m++){
+    const v=data[m]||0;const gain=v-init;const pct=(gain/init*100).toFixed(2);
+    const cls=gain>=0?'gain':'loss';
+    const yr=Math.ceil(m/12);const mo=m%12||12;
+    html+=`<tr><td>Rok ${yr}, mc ${mo} <small style="color:var(--gray-400)">(mc ${m})</small></td><td>${fmt(v)}</td><td class="${cls}">${gain>=0?'+':''}${fmt(gain)}</td><td class="${cls}">${gain>=0?'+':''}${pct}%</td></tr>`;
+  }
+  tbody.innerHTML=html;
+}
+
+function renderChartNominal(res){
+  const canvas=document.getElementById('ko-chart-nominal');
+  if(!canvas||typeof Chart==='undefined')return;
+  if(chartNominal)chartNominal.destroy();
+  const{annual}=res;
+  const labels=annual.years.map(y=>`Rok ${y}`);
+  const datasets=BOND_KEYS.map(k=>({label:BOND_LABELS[k],data:annual.nominal[k]||[],borderColor:COLORS[k],backgroundColor:COLORS[k]+'22',borderWidth:2,pointRadius:3,pointHoverRadius:6,tension:0.3}));
+  chartNominal=new Chart(canvas,{type:'line',data:{labels,datasets},options:chartOpts(false)});
+  renderLegend('ko-legend-nominal',chartNominal);
+}
+
+function renderChartReal(res){
+  const canvas=document.getElementById('ko-chart-real');
+  if(!canvas||typeof Chart==='undefined')return;
+  if(chartReal)chartReal.destroy();
+  const{annual}=res;
+  const labels=annual.years.map(y=>`Rok ${y}`);
+  const datasets=BOND_KEYS.map(k=>({label:BOND_LABELS[k],data:(annual.realReturn[k]||[]).map(r=>+(r*100).toFixed(2)),borderColor:COLORS[k],backgroundColor:COLORS[k]+'22',borderWidth:2,pointRadius:3,pointHoverRadius:6,tension:0.3}));
+  chartReal=new Chart(canvas,{type:'line',data:{labels,datasets},options:chartOpts(true)});
+  renderLegend('ko-legend-real',chartReal);
+}
+
+function chartOpts(isPercent){
+  return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(27,42,74,.92)',titleFont:{size:13,weight:'600'},bodyFont:{size:12},padding:12,
+      callbacks:{label:ctx=>{const v=ctx.parsed.y;return isPercent?`  ${ctx.dataset.label}: ${v>=0?'+':''}${v.toFixed(1)}%`:`  ${ctx.dataset.label}: ${fmt(v)} zł`;}}}},
+    scales:{x:{grid:{color:'#F1F3F5'},ticks:{font:{size:11},color:'#6C757D'}},
+      y:{grid:{color:'#F1F3F5'},ticks:{font:{size:11},color:'#6C757D',callback:v=>isPercent?v+'%':fmtShort(v)}}}};
+}
+
+function renderLegend(id,chart){
+  const el=document.getElementById(id);if(!el)return;
+  let html='';
+  chart.data.datasets.forEach((ds,i)=>{html+=`<div class="ko-legend-item" data-idx="${i}"><div class="ko-legend-dot" style="background:${ds.borderColor}"></div><span>${ds.label}</span></div>`;});
+  el.innerHTML=html;
+  el.querySelectorAll('.ko-legend-item').forEach(item=>{
+    item.addEventListener('click',()=>{const idx=parseInt(item.dataset.idx);const meta=chart.getDatasetMeta(idx);meta.hidden=!meta.hidden;item.classList.toggle('hidden',meta.hidden);chart.update();});
+  });
+}
+
+function resetDefaults(){
+  document.getElementById('ko-bond-count').value  = 1000;
+  document.getElementById('ko-invest-value').value= 100000;
+  document.getElementById('ko-tax').value         = 19;
+  document.getElementById('u-inflation').value    = 2.1;
+  document.getElementById('u-nbp').value          = 3.75;
+  document.getElementById('u-wibor').value        = 3.88;
+  document.getElementById('u-savings').value      = 3.60;
+  buildScenarioTable();runCalculation();
+}
+
+function init(){buildScenarioTable();bindEvents();runCalculation();}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}else{init();}
+})();
+</script>
+</body>
+</html>

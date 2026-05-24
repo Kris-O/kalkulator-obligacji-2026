@@ -1,0 +1,22 @@
+node_modules/
+dist/
+
+# Skrypty analizy XLSX (jednorazowe, nie część produktu)
+inspect_*.mjs
+list_*.mjs
+list_*.py
+find_*.mjs
+check_*.mjs
+check_*.py
+compare_*.mjs
+dump_*.py
+extract_*.mjs
+trace_*.mjs
+read_*.mjs
+get_*.mjs
+locate_*.py
+js_year1*.mjs
+calc_local.js
+test_calc.mjs
+read_two_years.mjs
+read_xlsx_values.mjs
