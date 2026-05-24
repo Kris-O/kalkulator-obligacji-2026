@@ -18,8 +18,8 @@ Otwórz w przeglądarce:
   standalone/kalkulator-obligacji.html
 ```
 
-Wymaga tylko dostępu do internetu (Chart.js ładowany z CDN jsdelivr.net).
-Działa offline jeśli Chart.js jest już w cache przeglądarki.
+Działa w pełni **offline** — Chart.js 4.4.4 jest wbudowany bezpośrednio w plik HTML.
+Nie wymaga połączenia z internetem ani instalacji żadnych pakietów.
 
 ### Uruchomienie testów
 
@@ -34,7 +34,7 @@ Oczekiwany wynik:
 ✅  WSZYSTKIE TESTY ZALICZONE — kalkulator zgodny z arkuszem Excel.
 ```
 
-96 asercji: 8 instrumentów × 12 lat, tolerancja ±0,01 zł.
+113 asercji: 8 instrumentów × 12 lat (96) + smoke-testy miesięczne m=49/50/100 (17), tolerancja ±0,01 zł.
 
 ### WordPress Plugin
 
@@ -111,7 +111,8 @@ wpisanych w zakładce `WPISZ ZAŁOŻENIA`.
 node build.mjs
 ```
 
-Tworzy `dist/kalkulator-obligacji-v1.0.1.zip` zawierający `standalone/kalkulator-obligacji.html`.
+Tworzy `dist/kalkulator-obligacji-v{wersja}.zip` zawierający `standalone/kalkulator-obligacji.html`
+(wersja czytana z `package.json`; aktualnie v1.0.3).
 
 ---
 
@@ -132,7 +133,7 @@ Tworzy `dist/kalkulator-obligacji-v1.0.1.zip` zawierający `standalone/kalkulato
 ## Wymagania
 
 - **Testy**: Node.js ≥ 18 (ESM)
-- **Standalone HTML**: przeglądarka z JavaScript + dostęp do CDN (Chart.js)
+- **Standalone HTML**: przeglądarka z JavaScript (Chart.js wbudowany, brak CDN)
 - **WordPress Plugin**: WordPress ≥ 5.8, PHP ≥ 7.4
 
 ---
