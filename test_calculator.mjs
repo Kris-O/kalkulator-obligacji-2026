@@ -58,6 +58,73 @@ for (let y = 1; y <= 12; y++) {
 }
 
 console.log('\n' + '─'.repeat(85));
+
+// ── Miesięczne smoke-testy (regresja JS→JS, DEFAULT_PARAMS / Scenariusz I) ──
+//
+// UWAGA: wartości z arkusza OBLIGACJE (zakładka WPISZ ZAŁOŻENIA, kolumny AF+) nie
+// nadają się do bezpośredniego porównania — plik XLSX był zapisany w trybie
+// rocznym z inflacją 17,7% / NBP 6,75% (kompletnie inny scenariusz niż Scenariusz I).
+// Tabela roczna Scenariusza I (OBLIGACJE!B9:K20) jest już weryfikowana przez 96
+// asercji powyżej.
+//
+// Poniższe smoke-testy sprawdzają spójność WEWNĘTRZNĄ: miesiące pośrednie (50, 100)
+// muszą trafiać w te same wartości co przy ostatniej weryfikacji. Jeśli diff > 0.01 zł,
+// w kodzie kalkulatora nastąpiła niezamierzona zmiana logiki obliczeń.
+//
+// Oczekiwane wartości wygenerowane przez: node extract_month50.mjs (2026-05-24)
+// Parametry: DEFAULT_PARAMS / Scenariusz I (inflation=2.1%, nbp=3.75%, wibor=3.88%, savings=3.60%)
+
+const EXPECTED_MONTHLY = {
+  50: {
+    ROR: 114805.54142379115,
+    DOR: 114263.64119833702,
+    TOS: 115035.37108130699,
+    COI: 112201.99919019207,
+    EDO: 113493.55449115961,
+    ROS: 113981.54932673713,
+    ROD: 115211.77604475676,
+    KTO: 112902.29539841811,
+  },
+  100: {
+    ROR: 132552.34206156782,
+    DOR: 131400.74170659715,
+    TOS: 133452.26293631975,
+    COI: 127961.32882317422,
+    EDO: 131166.09817832778,
+    ROS: 131739.1793352588,
+    ROD: 135551.4817267429,
+    KTO: 127469.28306231658,
+  },
+};
+
+let allPassMonthly = true;
+console.log('\n=== Smoke-testy miesięczne (Scenariusz I, regresja) ===\n');
+console.log('Mies.  Instrument  Oczekiwane         Obliczone          Diff         Status');
+console.log('─'.repeat(88));
+
+for (const [month, exp] of Object.entries(EXPECTED_MONTHLY)) {
+  const m = Number(month);
+  for (const t of types) {
+    const expected = exp[t];
+    const computed = result.monthly[t]?.[m] ?? NaN;
+    const diff = Math.abs(computed - expected);
+    const ok = diff <= TOLERANCE;
+    if (!ok) { allPass = false; allPassMonthly = false; }
+    const status = ok ? '✓' : '✗ FAIL';
+    console.log(
+      `${String(m).padStart(5)}  ${t.padEnd(10)}  ${expected.toFixed(5).padStart(17)}  ${(isNaN(computed) ? 'NaN' : computed.toFixed(5)).padStart(17)}  ${diff.toFixed(6).padStart(12)}  ${status}`
+    );
+  }
+  console.log('');
+}
+
+console.log('─'.repeat(88));
+console.log(allPassMonthly
+  ? '✅  Smoke-testy miesięczne: OK'
+  : '❌  Smoke-testy miesięczne: FAIL');
+
+// ── Podsumowanie ─────────────────────────────────────────────────────────────
+console.log('\n' + '═'.repeat(85));
 console.log(allPass
   ? '\n✅  WSZYSTKIE TESTY ZALICZONE — kalkulator zgodny z arkuszem Excel.'
   : '\n❌  NIEKTÓRE TESTY NIEZALICZONE — sprawdź różnice powyżej.');
@@ -69,3 +136,5 @@ for (const t of types) {
   const got = annual[t]?.[0] ?? NaN;
   console.log(`  ${t}: expected=${exp.toFixed(5)}, got=${isNaN(got)?'NaN':got.toFixed(5)}`);
 }
+
+process.exit(allPass ? 0 : 1);

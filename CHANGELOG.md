@@ -6,6 +6,20 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ---
 
+## [1.0.2] — 2026-05-24
+
+### Dodane
+- **Miesięczne smoke-testy regresji**: 16 asercji (8 instrumentów × miesiące 50 i 100)
+  dołączone do `test_calculator.mjs`; łącznie 112 testów (96 rocznych + 16 miesięcznych)
+- **Chart.js 4.4.4 vendored offline**: biblioteka wbudowana bezpośrednio w standalone HTML
+  (~238 KB); plik działa w trybie offline bez połączenia z internetem po double-click
+- **Backlog**: uściślono issue #4 w `ISSUES.md` — rok 12 ROD jest objęty testami
+  rocznym; otwarte pozostaje tylko zachowanie miesiąc 145+ (post-rollover poza horyzontem)
+- **Build**: `build.mjs` czyta wersję z `package.json`; ZIP zawiera tylko standalone HTML
+- **process.exit**: `test_calculator.mjs` zwraca exit code 1 przy niepowodzeniu (wymagane przez CI)
+
+---
+
 ## [1.0.1] — 2026-05-24
 
 ### Naprawione

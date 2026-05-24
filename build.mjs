@@ -18,36 +18,40 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-const VERSION = '1.0.1';
+// Wersja jest autorytatywna w package.json; BUILD_VERSION służy tylko nazwie pliku ZIP.
+import { createRequire } from 'module';
+const _require = createRequire(import.meta.url);
+const { version: VERSION } = _require('./package.json');
+
 const SRC     = resolve(__dirname, 'html/standalone/kalkulator-obligacji.html');
 const DEST    = resolve(__dirname, 'standalone/kalkulator-obligacji.html');
 const DIST    = resolve(__dirname, 'dist');
-const ZIP     = resolve(DIST, `kalkulator-obligacji-v${VERSION}.zip`);
+const ZIPNAME = `kalkulator-obligacji-v${VERSION}.zip`;
+const ZIP     = resolve(DIST, ZIPNAME);
 
-// ── Skopiuj standalone HTML ───────────────────────────────────────────────────
+// ── Skopiuj standalone HTML (Chart.js jest już inlined) ─────────────────────
 if (!existsSync(resolve(__dirname, 'standalone'))) {
   mkdirSync(resolve(__dirname, 'standalone'), { recursive: true });
 }
 
 const html = readFileSync(SRC, 'utf8');
 writeFileSync(DEST, html, 'utf8');
-console.log(`✅ Skopiowano: ${DEST}`);
+console.log(`✅ Skopiowano: ${DEST} (${(Buffer.byteLength(html,'utf8')/1024).toFixed(0)} KB, Chart.js inlined)`);
 
-// ── Utwórz ZIP jeśli dostępny zip (Linux/macOS) ───────────────────────────────
+// ── Utwórz ZIP zawierający tylko standalone HTML ──────────────────────────────
 if (!existsSync(DIST)) {
   mkdirSync(DIST, { recursive: true });
 }
 
 try {
-  // Na Windows: użyj PowerShell lub 7zip
   const isWindows = process.platform === 'win32';
   if (isWindows) {
     execSync(
-      `powershell -Command "Compress-Archive -Path standalone -DestinationPath '${ZIP}' -Force"`,
+      `powershell -Command "Compress-Archive -Path '${DEST}' -DestinationPath '${ZIP}' -Force"`,
       { cwd: __dirname, stdio: 'inherit' }
     );
   } else {
-    execSync(`zip -r "${ZIP}" standalone/`, { cwd: __dirname, stdio: 'inherit' });
+    execSync(`zip -j "${ZIP}" "${DEST}"`, { cwd: __dirname, stdio: 'inherit' });
   }
   console.log(`📦 ZIP: ${ZIP}`);
 } catch (e) {

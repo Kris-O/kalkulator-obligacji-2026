@@ -20,3 +20,7 @@ calc_local.js
 test_calc.mjs
 read_two_years.mjs
 read_xlsx_values.mjs
+inline_chartjs.mjs
+
+# Vendor (Chart.js pobierany przez inline_chartjs.mjs; nie commitować binarek)
+standalone/vendor/

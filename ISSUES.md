@@ -54,14 +54,19 @@ pochodzi z Scenariusza I (EE:EJ). Tryb roczny nie jest weryfikowany testami.
 
 ---
 
-## #4 ROD rok 12 — rolowanie po granicy symulacji
+## #4 ROD miesiąc 145+ — rolowanie po granicy symulacji
 
-**Opis**: ROD ma termin 144 miesięcy = 12 lat. Pierwsze rolowanie ROD wypada
-dokładnie na granicy horyzontu symulacji (miesiąc 144). Zachowanie po rolowaniu
-(miesiąc 145+) nie jest testowane.
+**Status**: Rok 12 (miesiąc 144) jest weryfikowany przez testy roczne (96 asercji,
+diff = 0). Smoke-testy miesięczne pokrywają miesiąc 100, tj. środek pierwszego
+okresu ROD (przed rolowaniem).
 
-**Kroki**: Rozszerzyć `TOTAL_MONTHS` na 157 i dodać asercje dla ROD rok 13
-(tylko jeśli arkusz zawiera te dane).
+**Co pozostaje niesprawdzone**: zachowanie kalkulatora w miesiącach 145–157
+po pierwszym rolowaniu ROD (nowy 144-miesięczny termin od miesiąca 145).
+Arkusz Excel nie zawiera danych dla lat 13+, więc brak wartości referencyjnych.
+
+**Kroki**: Rozszerzyć `TOTAL_MONTHS` na 157, uruchomić kalkulator i ręcznie
+zweryfikować, czy wyniki dla roku 13 ROD są algebraicznie poprawne
+(np. czy stopa bazowa na rok 13 pochodzi z inflation[11] = ostatni znany rok).
 
 ---
 
