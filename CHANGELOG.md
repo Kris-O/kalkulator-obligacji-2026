@@ -6,6 +6,22 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ---
 
+## [1.0.3] — 2026-05-25
+
+### Naprawione
+- **COI monthly rollover vs Excel**: poprawiono logikę miesięczną po zapadalności,
+  aby nie występował skok po rolowaniu i aby wartości miesięczne COI były zgodne
+  1:1 z arkuszem referencyjnym.
+- **Ochrona opłaty wcześniejszego wykupu dla COI**: dopasowano zakres ochrony do
+  modelu z Excela (`12` miesięcy okresu), zamiast tylko pierwszego miesiąca.
+
+### Zmienione
+- **Smoke-testy miesięczne**: `test_calculator.mjs` porównuje teraz wartości
+  miesięczne bezpośrednio do XLSX (miesiące `50` i `100` dla wszystkich instrumentów)
+  oraz zawiera dodatkowy test krawędziowy `COI` dla miesiąca `49`.
+
+---
+
 ## [1.0.2] — 2026-05-24
 
 ### Dodane

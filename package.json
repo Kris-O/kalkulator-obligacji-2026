@@ -1,6 +1,6 @@
 {
   "name": "kalkulator-obligacji",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Kalkulator Obligacji Skarbowych — model dwu-składnikowy zgodny z arkuszem Excel",
   "main": "html/assets/calculator.js",
   "dependencies": {
