@@ -19,7 +19,7 @@ const BONDS = {
   ROR: { name: 'ROR', label: '1-roczna (ROR)',  months: 12,  base: 'nbp',       margin: 0.000, couponType: 'monthly',    feePerBond: 0.5, fixedPeriod1Rate: 0.0400, zamiana: 99.9 },
   DOR: { name: 'DOR', label: '2-letnia (DOR)',  months: 24,  base: 'nbp',       margin: 0.0015,couponType: 'monthly',    feePerBond: 0.7, fixedPeriod1Rate: 0.0415, zamiana: 99.9 },
   TOS: { name: 'TOS', label: '3-letnia (TOS)',  months: 36,  base: 'fixed',     margin: 0.000, couponType: 'capitalize', feePerBond: 1.0, fixedPeriod1Rate: 0.0440, zamiana: 99.9 },
-  COI: { name: 'COI', label: '4-letnia (COI)',  months: 48,  base: 'inflation', margin: 0.015, couponType: 'annual',     feePerBond: 2.0, fixedPeriod1Rate: 0.0475, zamiana: 99.9 },
+  COI: { name: 'COI', label: '4-letnia (COI)',  months: 48,  base: 'inflation', margin: 0.015, couponType: 'annual',     feePerBond: 2.0, fixedPeriod1Rate: 0.0475, zamiana: 99.9, protectionMonths: 12 },
   ROS: { name: 'ROS', label: '6-letnia (ROS)',  months: 72,  base: 'inflation', margin: 0.020, couponType: 'capitalize', feePerBond: 2.0, fixedPeriod1Rate: 0.0500, zamiana: 100  },
   EDO: { name: 'EDO', label: '10-letnia (EDO)', months: 120, base: 'inflation', margin: 0.020, couponType: 'capitalize', feePerBond: 3.0, fixedPeriod1Rate: 0.0535, zamiana: 99.9 },
   ROD: { name: 'ROD', label: '12-letnia (ROD)', months: 144, base: 'inflation', margin: 0.025, couponType: 'capitalize', feePerBond: 3.0, fixedPeriod1Rate: 0.0560, zamiana: 100  },
@@ -69,7 +69,7 @@ function calculate(params) {
 // ---------------------------------------------------------------------------
 
 function calcBond(bond, params, totalMonths) {
-  const { months: maturityMonths, base, margin, couponType, feePerBond, fixedPeriod1Rate, zamiana } = bond;
+  const { months: maturityMonths, base, margin, couponType, feePerBond, fixedPeriod1Rate, zamiana, protectionMonths = 1 } = bond;
   const { bondCount: initBonds, taxRate, inflation, nbpRate, savingsRate } = params;
 
   const monthly = new Array(totalMonths + 1).fill(0);
@@ -116,7 +116,7 @@ function calcBond(bond, params, totalMonths) {
 
     // ── Termin wykupu i ochrona ──────────────────────────────────────────────
     const isMaturity   = (periodMonth === maturityMonths);
-    const isProtection = (periodMonth === 1); // 1. miesiąc każdego okresu
+    const isProtection = (periodMonth <= protectionMonths);
 
     // ── Opłata za wcześniejszy wykup ────────────────────────────────────────
     let fee;
@@ -175,8 +175,12 @@ function calcBond(bond, params, totalMonths) {
     const savGrowth = savingsRate[yearIdx] / 12 * (1 - taxRate);
 
     // ── Wynik miesięczny = konto z poprzedniego miesiąca × wzrost + wykup ───
-    // Wzór Excel: AQ44 = AP43 × (1 + AO44/12 × (1-tax)) + AM44
-    const result = savings * (1 + savGrowth) + redemption;
+    // Dla COI Excel (kolumna CL) odejmuje redukcję konta także w samym wyniku
+    // miesiąca po terminie wykupu, żeby nie podwójnie liczyć środków z konta.
+    const savingsForResult = (couponType === 'annual')
+      ? (savings - savingsReduction)
+      : savings;
+    const result = savingsForResult * (1 + savGrowth) + redemption;
     monthly[m] = result;
 
     // ── Aktualizacja konta oszczędnościowego ────────────────────────────────
