@@ -85,4 +85,29 @@ bez powiadomienia administratora.
 
 ---
 
+## #6 Port na inne kraje — inflation-linked bonds poza Polską
+
+**Opis**: Architektura kalkulatora (`calculator.js` + `calcBond()`) jest wystarczająco ogólna,
+żeby obsłużyć inne rynki obligacji indeksowanych inflacją. Każdy kraj ma jednak inne reguły
+opodatkowania, różne struktury kuponów i własne wskaźniki inflacji.
+
+**Potencjalne rynki**:
+- 🇺🇸 **US I-bonds / TIPS** (Treasury Inflation-Protected Securities) — popularne wśród
+  anglojęzycznych użytkowników; inna struktura (semi-annual coupon, real yield + CPI-U)
+- 🇬🇧 **UK Index-linked Gilts** — RPI-linked, różne terminy (5–30 lat)
+- 🇩🇪 **Bundesanleihen (linkers)** — HICP-linked, rynek UE
+
+**Zakres pracy**:
+1. Wyekstrahować stałe polskie z `calculator.js` do osobnego pliku `bonds-pl.js`
+2. Stworzyć `bonds-us.js` z parametrami I-bonds/TIPS
+3. Dodać selektor kraju w UI (lub osobne pliki HTML per kraj)
+4. Dostosować scraping kursów (Fed funds rate zamiast NBP, CPI-U zamiast GUS)
+5. Przetłumaczyć UI na angielski dla wersji US/UK
+
+**Uwaga**: Wymaga weryfikacji modelu z lokalnym arkuszem referencyjnym (odpowiednik
+Finanse Bardzo Osobiste dla USA/UK). US I-bonds mają m.in. roczny limit zakupu ($10k/os.)
+i 3-miesięczną karę przy wykupie przed 5 latami — do osobnej obsługi.
+
+---
+
 *Wygenerowano: 2026-05-24. Otwórz jako Issues na GitHub po przeniesieniu projektu.*

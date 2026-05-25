@@ -1,152 +1,192 @@
-# Kalkulator Obligacji Skarbowych
+# Polish Treasury Bond Calculator
 
-Interaktywny kalkulator porównujący 7 typów polskich obligacji skarbowych PKO z kontem
-oszczędnościowym (benchmarkiem) w horyzoncie 12 lat.
+🇵🇱 [Wersja polska → README.pl.md](README.pl.md)
 
-Model obliczeniowy jest zweryfikowany 1:1 z arkuszem referencyjnym
-`Kalkulator-obligacji-maj-2026-Finanse-Bardzo-Osobiste.xlsx` (Finanse Bardzo Osobiste, maj 2026).
-Szczegóły logiki: [`docs/calculation-model.md`](docs/calculation-model.md).
+An interactive calculator comparing 7 types of Polish PKO treasury bonds against a savings
+account benchmark over a 12-year horizon.
+
+The calculation model is verified 1:1 against the reference spreadsheet
+`Kalkulator-obligacji-maj-2026-Finanse-Bardzo-Osobiste.xlsx` by Marcin Iwuć
+([Finanse Bardzo Osobiste](https://marciniwuc.com/obligacje-indeksowane-inflacja-kalkulator/)).
+Full model description: [`docs/calculation-model.md`](docs/calculation-model.md).
 
 ---
 
-## Szybki start
+## Quick Start
 
-### Standalone HTML (bez serwera, bez instalacji)
+### Standalone HTML (no server, no install)
 
 ```
-Otwórz w przeglądarce:
+Open in any browser:
   standalone/kalkulator-obligacji.html
 ```
 
-Działa w pełni **offline** — Chart.js 4.4.4 jest wbudowany bezpośrednio w plik HTML.
-Nie wymaga połączenia z internetem ani instalacji żadnych pakietów.
+Fully **offline** — Chart.js 4.4.4 is bundled directly in the HTML file.
+No internet connection or npm packages required.
 
-### Uruchomienie testów
+### Run Tests
 
 ```bash
 node test_calculator.mjs
 ```
 
-Wymaga Node.js ≥ 18. Brak dodatkowych dependencji npm.
+Requires Node.js ≥ 18. No npm dependencies.
 
-Oczekiwany wynik:
+Expected output:
 ```
 ✅  WSZYSTKIE TESTY ZALICZONE — kalkulator zgodny z arkuszem Excel.
 ```
 
-113 asercji: 8 instrumentów × 12 lat (96) + smoke-testy miesięczne m=49/50/100 (17), tolerancja ±0,01 zł.
+113 assertions: 8 instruments × 12 years (96) + monthly smoke tests m=49/50/100 (17),
+tolerance ±0.01 PLN.
 
 ### WordPress Plugin
 
-1. Skopiuj katalog `html/` jako plugin do `wp-content/plugins/kalkulator-obligacji/`
-2. Aktywuj w panelu WordPress → Wtyczki
-3. Wklej shortcode na dowolnej stronie:
+1. Copy the `html/` directory to `wp-content/plugins/kalkulator-obligacji/`
+2. Activate under WordPress → Plugins
+3. Insert shortcode on any page:
 
 ```
 [kalkulator_obligacji]
 ```
 
-Opcjonalne parametry:
+Optional parameters:
 ```
 [kalkulator_obligacji bond_count="500" tax="19"]
 ```
 
-Plugin automatycznie pobiera aktualne kursy NBP i WIBOR 6M raz dziennie
-(WP Cron + scraping). Panel admina: Ustawienia → Kalkulator Obligacji.
+The plugin auto-fetches current NBP and WIBOR 6M rates once a day
+(WP Cron + scraping). Admin panel: Settings → Kalkulator Obligacji.
 
 ---
 
-## Parametry domyślne — Scenariusz I
+## Instruments
 
-Wartości hardcoded w `html/assets/calculator.js` na podstawie danych z arkusza
-(`OBLIGACJE!EE28:EJ39`, Scenariusz I, maj 2026):
+| Symbol | Term    | Base rate           | Year-1 rate | Coupons       |
+|--------|---------|---------------------|-------------|---------------|
+| ROR    | 12 mo   | NBP reference rate  | 4.00%       | Monthly       |
+| DOR    | 24 mo   | NBP + 0.15%         | 4.15%       | Monthly       |
+| TOS    | 36 mo   | Fixed 4.40%         | 4.40%       | Compounding   |
+| COI    | 48 mo   | Inflation + 1.50%   | 4.75%       | Annual payout |
+| ROS    | 72 mo   | Inflation + 2.00%   | 5.00%       | Compounding   |
+| EDO    | 120 mo  | Inflation + 2.00%   | 5.35%       | Compounding   |
+| ROD    | 144 mo  | Inflation + 2.50%   | 5.60%       | Compounding   |
 
-| Parametr              | Wartość   |
-|-----------------------|-----------|
-| Inflacja              | 2,1%/rok  |
-| Stopa NBP             | 3,75%/rok |
-| WIBOR 6M              | 3,88%/rok |
-| Konto oszczędnościowe | 3,60%/rok |
-| Liczba obligacji      | 1 000 szt.|
-| Wartość nominalna     | 100 zł/szt.|
-| Podatek Belki         | 19%       |
-
-Scenariusz I pochodzi z kolumn EF:EJ arkusza i jest niezależny od wartości
-wpisanych w zakładce `WPISZ ZAŁOŻENIA`.
+All bonds are issued by the Polish Ministry of Finance and distributed through PKO Bank Polski.
+Redemption before maturity incurs a fee (0.50–3.00 PLN/bond depending on type).
 
 ---
 
-## Struktura plików
+## Default Parameters — Scenario I
+
+Values hardcoded in `html/assets/calculator.js` from the reference spreadsheet
+(`OBLIGACJE!EE28:EJ39`, Scenario I, May 2026):
+
+| Parameter            | Value       |
+|----------------------|-------------|
+| Inflation            | 2.1%/year   |
+| NBP reference rate   | 3.75%/year  |
+| WIBOR 6M             | 3.88%/year  |
+| Savings account      | 3.60%/year  |
+| Number of bonds      | 1,000 pcs.  |
+| Face value           | 100 PLN/pc. |
+| Capital gains tax    | 19%         |
+
+Scenario I comes from columns EF:EJ of the spreadsheet and is independent of
+the values entered in the `WPISZ ZAŁOŻENIA` (Enter Assumptions) sheet.
+
+---
+
+## Calculation Model
+
+The calculator uses a **two-component model** matching the Excel formulas exactly:
 
 ```
-├── html/                          # Źródło pluginu WordPress
-│   ├── kalkulator-obligacji.php   # Główny plik pluginu (shortcode, WP Cron, admin)
+result[t] = savings[t-1] × (1 + savRate/12 × (1−tax)) + redemption[t]
+```
+
+- **redemption[t]** — current early-redemption value of the bond position
+- **savings[t]** — accumulated net coupons reinvested in a savings account
+
+At each rollover (end of term), bond proceeds and accumulated coupons are
+reinvested into a new bond of the same type. See [`docs/calculation-model.md`](docs/calculation-model.md)
+for the full description including fee logic, tax basis, and per-instrument coupon types.
+
+---
+
+## File Structure
+
+```
+├── html/                          # WordPress plugin source
+│   ├── kalkulator-obligacji.php   # Plugin entrypoint (shortcode, WP Cron, admin)
 │   ├── assets/
-│   │   ├── calculator.js          # ✅ Zweryfikowana logika obliczeń (v2.0)
-│   │   ├── charts.js              # UI + Chart.js
-│   │   └── calculator.css         # Style
+│   │   ├── calculator.js          # ✅ Verified calculation engine (v2.0)
+│   │   ├── charts.js              # UI + Chart.js wrappers
+│   │   └── calculator.css         # Styles
 │   ├── includes/
-│   │   ├── class-rates-fetcher.php # Scraping NBP + GPW Benchmark
+│   │   ├── class-rates-fetcher.php # NBP + GPW Benchmark scraper
 │   │   └── class-ajax.php          # WP AJAX endpoints
 │   └── standalone/
-│       └── kalkulator-obligacji.html # Self-contained (dev source)
+│       └── kalkulator-obligacji.html # Self-contained dev source
 │
-├── standalone/                    # 📦 Release — gotowe do otwarcia w przeglądarce
+├── standalone/                    # 📦 Release build — open directly in browser
 │   └── kalkulator-obligacji.html
 │
 ├── docs/
-│   └── calculation-model.md       # Opis modelu obliczeniowego (po polsku)
+│   └── calculation-model.md       # Full model description (Polish)
 │
-├── test_calculator.mjs            # Testy porównawcze z arkuszem Excel
-├── build.mjs                      # Skrypt budowania standalone ZIP
+├── test_calculator.mjs            # Comparison tests vs Excel spreadsheet
+├── build.mjs                      # Builds standalone ZIP
 ├── CHANGELOG.md
-└── README.md
+├── README.md                      # This file (English)
+└── README.pl.md                   # Polish version
 ```
 
 ---
 
-## Budowanie ZIP
+## Build ZIP
 
 ```bash
 node build.mjs
 ```
 
-Tworzy `dist/kalkulator-obligacji-v{wersja}.zip` zawierający `standalone/kalkulator-obligacji.html`
-(wersja czytana z `package.json`; aktualnie v1.0.3).
+Creates `dist/kalkulator-obligacji-v{version}.zip` containing `standalone/kalkulator-obligacji.html`
+(version read from `package.json`; currently v1.0.3).
 
 ---
 
-## Instrumenty
+## Requirements
 
-| Symbol | Termin  | Baza             | Stopa rok 1 | Odsetki       |
-|--------|---------|------------------|-------------|---------------|
-| ROR    | 12 mc   | Stopa NBP        | 4,00%       | Miesięczne    |
-| DOR    | 24 mc   | Stopa NBP +0,15% | 4,15%       | Miesięczne    |
-| TOS    | 36 mc   | Stała 4,40%      | 4,40%       | Kapitalizacja |
-| COI    | 48 mc   | Inflacja +1,50%  | 4,75%       | Roczne        |
-| ROS    | 72 mc   | Inflacja +2,00%  | 5,00%       | Kapitalizacja |
-| EDO    | 120 mc  | Inflacja +2,00%  | 5,35%       | Kapitalizacja |
-| ROD    | 144 mc  | Inflacja +2,50%  | 5,60%       | Kapitalizacja |
-
----
-
-## Wymagania
-
-- **Testy**: Node.js ≥ 18 (ESM)
-- **Standalone HTML**: przeglądarka z JavaScript (Chart.js wbudowany, brak CDN)
+- **Tests**: Node.js ≥ 18 (ESM)
+- **Standalone HTML**: any browser with JavaScript (Chart.js bundled, no CDN)
 - **WordPress Plugin**: WordPress ≥ 5.8, PHP ≥ 7.4
 
 ---
 
-## Znane ograniczenia
+## Known Limitations
 
-Nieprzetestowane przypadki: rok 12 ROD po rolowaniu, IKE, inflacja ≤ 0,
-stopa NBP > wartości ze Scenariusza I. Szczegóły: sekcja 12 w
-[`docs/calculation-model.md`](docs/calculation-model.md).
+Untested edge cases: ROD rollover after month 144, IKE account variant,
+inflation ≤ 0, NBP rate above Scenario I values. Details in section 12 of
+[`docs/calculation-model.md`](docs/calculation-model.md) and [`ISSUES.md`](ISSUES.md).
 
 ---
 
-## Licencja
+## Credits & Attribution
 
-GPL-2.0-or-later. Dane obligacji PKO BP: oferta maj 2026. Aktualizacja parametrów
-przy zmianie oferty wymaga ręcznej edycji `html/assets/calculator.js`.
+This project is an open-source reimplementation of the Excel calculator created by
+**Marcin Iwuć** at [Finanse Bardzo Osobiste](https://marciniwuc.com/):
+
+> **Marcin Iwuć** — *"Obligacje indeksowane inflacją — kalkulator"*
+> [marciniwuc.com/obligacje-indeksowane-inflacja-kalkulator/](https://marciniwuc.com/obligacje-indeksowane-inflacja-kalkulator/)
+
+The original Excel file (`Kalkulator-obligacji-maj-2026-Finanse-Bardzo-Osobiste.xlsx`)
+served as the reference model — all formulas, parameters, and test values were verified
+1:1 against the spreadsheet. Marcin regularly updates the calculator whenever PKO BP
+changes its bond offering.
+
+---
+
+## License
+
+GPL-2.0-or-later. Bond data: PKO BP offer, May 2026. Updating parameters when the
+offering changes requires manually editing `html/assets/calculator.js`.
