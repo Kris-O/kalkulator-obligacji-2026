@@ -42,9 +42,15 @@ tolerance ±0.01 PLN.
 
 ### WordPress Plugin
 
-1. Copy the `html/` directory to `wp-content/plugins/kalkulator-obligacji/`
-2. Activate under WordPress → Plugins
-3. Insert shortcode on any page:
+> ⚠️ **Do not use "Code → Download ZIP"** from GitHub — that downloads the entire repository,
+> not the plugin. WordPress will reject it. Use the dedicated plugin ZIP below.
+
+**Download:** [`releases/kalkulator-obligacji-wordpress-v1.0.3.zip`](releases/kalkulator-obligacji-wordpress-v1.0.3.zip)
+
+1. Download the ZIP above
+2. Go to **WordPress → Plugins → Add New → Upload Plugin**
+3. Upload the ZIP and click **Install Now**, then **Activate**
+4. Insert shortcode on any page:
 
 ```
 [kalkulator_obligacji]
