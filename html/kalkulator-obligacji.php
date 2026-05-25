@@ -1,10 +1,11 @@
 <?php
 /**
  * Plugin Name: Kalkulator Obligacji Skarbowych
- * Plugin URI:  https://github.com/
- * Description: Interaktywny kalkulator porównujący 7 typów polskich obligacji skarbowych PKO z automatycznym pobieraniem stopy NBP i WIBOR 6M. Shortcode: [kalkulator_obligacji]
- * Version:     1.0.0
- * Author:      Kalkulator
+ * Plugin URI:  https://github.com/Kris-O/kalkulator-obligacji-2026
+ * Description: Interaktywny kalkulator porównujący 7 typów polskich obligacji skarbowych PKO z automatycznym pobieraniem stopy NBP i WIBOR 6M. Shortcode: [kalkulator_obligacji]. Model oparty na kalkulatorze Marcina Iwucia (marciniwuc.com).
+ * Version:     1.0.3
+ * Author:      Krzysztof Oldak
+ * Author URI:  https://www.linkedin.com/in/krzysztofoldak/
  * License:     GPL-2.0-or-later
  * Text Domain: kalkulator-obligacji
  */
