@@ -70,7 +70,11 @@ function calculate(params) {
 
 function calcBond(bond, params, totalMonths) {
   const { months: maturityMonths, base, margin, couponType, feePerBond, fixedPeriod1Rate, zamiana, protectionMonths = 1 } = bond;
-  const { bondCount: initBonds, taxRate, inflation, nbpRate, savingsRate } = params;
+  const { bondCount: initBonds, taxRate, inflation, nbpRate, savingsRate,
+          ikeMode = 'none', ikeFeeRate = 0.001 } = params;
+
+  // IKE: brak podatku Belki gdy spełniane są warunki konta emerytalnego
+  const effectiveTax = (ikeMode === 'eligible') ? 0 : taxRate;
 
   const monthly = new Array(totalMonths + 1).fill(0);
   monthly[0] = initBonds * 100;
@@ -132,7 +136,7 @@ function calcBond(bond, params, totalMonths) {
 
     // ── Wartość wykupu (redemption) ──────────────────────────────────────────
     // AM = AJ - AL - (AJ - AG - AL) * tax
-    const redemption = gross - fee - (gross - originalFace - fee) * taxRate;
+    const redemption = gross - fee - (gross - originalFace - fee) * effectiveTax;
 
     // ── Odsetki / kupon trafiający na konto oszczędnościowe ─────────────────
     let toSavings = 0;
@@ -140,7 +144,7 @@ function calcBond(bond, params, totalMonths) {
     if (couponType === 'monthly') {
       // Kupon miesięczny: pełne odsetki netto (bez opłaty) → konto
       const coupon = gross - capBase;
-      toSavings = coupon * (1 - taxRate);
+      toSavings = coupon * (1 - effectiveTax);
       if (isMaturity) {
         // Bonus zamiany: ROUNDDOWN(gross / 99.9) * 0.1
         toSavings += Math.floor(gross / zamiana) * 0.1;
@@ -154,7 +158,7 @@ function calcBond(bond, params, totalMonths) {
           toSavings = redemption - Math.floor(redemption / zamiana) * zamiana;
         } else {
           // Zwykły kupon roczny: pełna kwota odsetek netto (bez opłaty)
-          toSavings = (gross - capBase) * (1 - taxRate);
+          toSavings = (gross - capBase) * (1 - effectiveTax);
         }
       }
 
@@ -172,7 +176,7 @@ function calcBond(bond, params, totalMonths) {
       : 0;
 
     // ── Miesięczna stopa wzrostu konta oszczędnościowego ────────────────────
-    const savGrowth = savingsRate[yearIdx] / 12 * (1 - taxRate);
+    const savGrowth = savingsRate[yearIdx] / 12 * (1 - effectiveTax);
 
     // ── Wynik miesięczny = konto z poprzedniego miesiąca × wzrost + wykup ───
     // Dla COI Excel (kolumna CL) odejmuje redukcję konta także w samym wyniku
@@ -182,6 +186,13 @@ function calcBond(bond, params, totalMonths) {
       : savings;
     const result = savingsForResult * (1 + savGrowth) + redemption;
     monthly[m] = result;
+
+    // ── IKE: roczna opłata za zarządzanie (koniec każdego roku symulacji) ────
+    if (ikeMode !== 'none' && m % 12 === 0) {
+      const fee   = monthly[m] * ikeFeeRate;
+      monthly[m]  = Math.max(0, monthly[m] - fee);
+      savings     = Math.max(0, savings    - fee);
+    }
 
     // ── Aktualizacja konta oszczędnościowego ────────────────────────────────
     // AP44 = (AP43 - redukcja_jeśli_AP43_był_w_terminie) × (1+savRate/12×(1-tax)) + AN44

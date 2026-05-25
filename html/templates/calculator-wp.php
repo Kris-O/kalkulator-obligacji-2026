@@ -24,6 +24,7 @@
     <button class="ko-tab active" data-tab="zalozenia"  role="tab">&#9881; Założenia</button>
     <button class="ko-tab"        data-tab="porownanie" role="tab">&#128200; Porównanie</button>
     <button class="ko-tab"        data-tab="realna"     role="tab">&#128178; Wartość realna</button>
+    <button class="ko-tab"        data-tab="ike"        role="tab">&#127968; IKE Obligacje</button>
     <button class="ko-tab"        data-tab="szczegoly"  role="tab">&#128203; Szczegóły</button>
   </div>
 
@@ -181,6 +182,80 @@
       <div class="ko-legend" id="ko-legend-real"></div>
     </div>
   </div>
+
+  <!-- PANEL: IKE OBLIGACJE -->
+  <div class="ko-panel" id="panel-ike" role="tabpanel">
+    <div class="ko-card">
+      <h2>Parametry IKE Obligacje</h2>
+      <div class="ko-form-row" style="align-items:flex-start">
+        <div class="ko-field" style="flex:2">
+          <label>Tryb opodatkowania</label>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;font-size:.9rem">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+              <input type="radio" name="ike-mode" id="ike-eligible" value="eligible" checked>
+              <span><strong>Spełniam warunki IKE</strong> — brak podatku Belki (19% → 0%)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+              <input type="radio" name="ike-mode" id="ike-partial" value="partial">
+              <span><strong>Nie spełniam warunków</strong> — podatek 19% + opłata zarządzania</span>
+            </label>
+          </div>
+        </div>
+        <div class="ko-field">
+          <label>Opłata za zarządzanie</label>
+          <div class="unit">
+            <input type="number" id="ike-fee-rate" value="0.10" min="0" max="2" step="0.01">
+            <span>%/rok</span>
+          </div>
+          <small style="color:var(--gray-500);font-size:.78rem;display:block;margin-top:4px">PKO BP: 0,10% (powyżej 50 tys. zł) lub 0,16% (poniżej)</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="ko-card">
+      <h2>Wynik po 12 latach — IKE vs zwykłe</h2>
+      <div class="ko-highlight-grid" id="ko-ike-highlights"></div>
+    </div>
+
+    <div class="ko-card">
+      <h2>Wartość nominalna w IKE na koniec roku (zł)</h2>
+      <div class="ko-results-wrap">
+        <table class="ko-results-table" id="ko-ike-table">
+          <thead>
+            <tr>
+              <th>Rok</th>
+              <th>ROR<br><small>1-roczna</small></th>
+              <th>DOR<br><small>2-letnia</small></th>
+              <th>TOS<br><small>3-letnia</small></th>
+              <th>COI<br><small>4-letnia</small></th>
+              <th>ROS<br><small>6-letnia</small></th>
+              <th>EDO<br><small>10-letnia</small></th>
+              <th>ROD<br><small>12-letnia</small></th>
+              <th>Konto<br><small>oszcz.</small></th>
+            </tr>
+          </thead>
+          <tbody id="ko-ike-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ko-card">
+      <h2>Wykres — IKE vs najlepsza obligacja zwykła</h2>
+      <div class="ko-chart-wrap"><canvas id="ko-chart-ike"></canvas></div>
+      <div class="ko-legend" id="ko-legend-ike"></div>
+    </div>
+
+    <div class="ko-card" style="background:var(--blue-50,#EEF4FF);border:1px solid var(--blue-200,#BFD7FF)">
+      <h2 style="color:var(--navy)">&#8505; Jak działa IKE Obligacje?</h2>
+      <ul style="list-style:disc;margin-left:20px;line-height:1.9;font-size:.88rem">
+        <li>Roczny limit wpłat: 3-krotność średniego wynagrodzenia (≈ 24&nbsp;tys. zł w 2026)</li>
+        <li>Brak podatku Belki przy wypłacie po 60. roku życia (lub po spełnieniu warunków ustawy)</li>
+        <li>Opłata za zarządzanie: <strong>0,10%/rok</strong> wartości portfela powyżej 50 000 zł, <strong>0,16%/rok</strong> poniżej</li>
+        <li>Wcześniejszy zwrot (przed warunkami IKE): normalny podatek 19% + opłata zarządzania</li>
+        <li>Obligacje dostępne identyczne jak w rachunku zwykłym (ROR, DOR, TOS, COI, ROS, EDO, ROD)</li>
+      </ul>
+    </div>
+  </div><!-- /panel-ike -->
 
   <!-- PANEL: SZCZEGÓŁY -->
   <div class="ko-panel" id="panel-szczegoly" role="tabpanel">

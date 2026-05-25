@@ -167,6 +167,7 @@ body { background:#F4F6FB; min-height:100vh; padding:24px 0; }
     <button class="ko-tab active" data-tab="zalozenia"  role="tab">&#9881; Założenia</button>
     <button class="ko-tab"        data-tab="porownanie" role="tab">&#128200; Porównanie</button>
     <button class="ko-tab"        data-tab="realna"     role="tab">&#128178; Wartość realna</button>
+    <button class="ko-tab"        data-tab="ike"        role="tab">&#127968; IKE Obligacje</button>
     <button class="ko-tab"        data-tab="szczegoly"  role="tab">&#128203; Szczegóły</button>
   </div>
 
@@ -264,6 +265,76 @@ body { background:#F4F6FB; min-height:100vh; padding:24px 0; }
       <div class="ko-legend" id="ko-legend-real"></div>
     </div>
   </div>
+
+  <!-- PANEL: IKE OBLIGACJE -->
+  <div class="ko-panel" id="panel-ike" role="tabpanel">
+    <div class="ko-card">
+      <h2>Parametry IKE Obligacje</h2>
+      <div class="ko-form-row" style="align-items:flex-start">
+        <div class="ko-field" style="flex:2">
+          <label>Tryb opodatkowania</label>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:6px;font-size:.9rem">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+              <input type="radio" name="ike-mode" id="ike-eligible" value="eligible" checked>
+              <span><strong>Spełniam warunki IKE</strong> — brak podatku Belki (19% → 0%)</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:400">
+              <input type="radio" name="ike-mode" id="ike-partial" value="partial">
+              <span><strong>Nie spełniam warunków</strong> — podatek 19% + opłata zarządzania</span>
+            </label>
+          </div>
+        </div>
+        <div class="ko-field">
+          <label>Opłata za zarządzanie</label>
+          <div class="unit">
+            <input type="number" id="ike-fee-rate" value="0.10" min="0" max="2" step="0.01">
+            <span>%/rok</span>
+          </div>
+          <small style="color:var(--gray-500);font-size:.78rem;display:block;margin-top:4px">PKO BP: 0,10% (powyżej 50 tys. zł) lub 0,16% (poniżej)</small>
+        </div>
+      </div>
+    </div>
+    <div class="ko-card">
+      <h2>Wynik po 12 latach — IKE vs zwykłe</h2>
+      <div class="ko-highlight-grid" id="ko-ike-highlights"></div>
+    </div>
+    <div class="ko-card">
+      <h2>Wartość nominalna w IKE na koniec roku (zł)</h2>
+      <div class="ko-results-wrap">
+        <table class="ko-results-table" id="ko-ike-table">
+          <thead>
+            <tr>
+              <th>Rok</th>
+              <th>ROR<br><small>1-roczna</small></th>
+              <th>DOR<br><small>2-letnia</small></th>
+              <th>TOS<br><small>3-letnia</small></th>
+              <th>COI<br><small>4-letnia</small></th>
+              <th>ROS<br><small>6-letnia</small></th>
+              <th>EDO<br><small>10-letnia</small></th>
+              <th>ROD<br><small>12-letnia</small></th>
+              <th>Konto<br><small>oszcz.</small></th>
+            </tr>
+          </thead>
+          <tbody id="ko-ike-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="ko-card">
+      <h2>Wykres — IKE vs najlepsza obligacja zwykła</h2>
+      <div class="ko-chart-wrap"><canvas id="ko-chart-ike"></canvas></div>
+      <div class="ko-legend" id="ko-legend-ike"></div>
+    </div>
+    <div class="ko-card" style="background:#EEF4FF;border:1px solid #BFD7FF">
+      <h2 style="color:#1B2A4A">&#8505; Jak działa IKE Obligacje?</h2>
+      <ul style="list-style:disc;margin-left:20px;line-height:1.9;font-size:.88rem">
+        <li>Roczny limit wpłat: 3-krotność średniego wynagrodzenia (≈ 24&nbsp;tys. zł w 2026)</li>
+        <li>Brak podatku Belki przy wypłacie po 60. roku życia (lub po spełnieniu warunków ustawy)</li>
+        <li>Opłata za zarządzanie: <strong>0,10%/rok</strong> wartości portfela powyżej 50 000 zł, <strong>0,16%/rok</strong> poniżej</li>
+        <li>Wcześniejszy zwrot: normalny podatek 19% + opłata zarządzania</li>
+        <li>Obligacje dostępne identyczne jak w rachunku zwykłym (ROR, DOR, TOS, COI, ROS, EDO, ROD)</li>
+      </ul>
+    </div>
+  </div><!-- /panel-ike -->
 
   <!-- PANEL: SZCZEGÓŁY -->
   <div class="ko-panel" id="panel-szczegoly">
@@ -550,7 +621,7 @@ const DEFAULTS_YEARLY={
   wibor:    [3.88,3.63,3.38,3.13,3.13,3.13,3.13,3.13,3.13,3.13,3.13,3.13],
   savings:  [3.60,3.40,3.20,3.00,3.00,3.00,3.00,3.00,3.00,3.00,3.00,3.00],
 };
-let lastResults=null,chartNominal=null,chartReal=null,scenarioMode='uniform';
+let lastResults=null,lastIKEResults=null,chartNominal=null,chartReal=null,chartIKE=null,scenarioMode='uniform';
 
 function fmt(n){return new Intl.NumberFormat('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n||0);}
 function fmtShort(n){if(Math.abs(n)>=1e6)return(n/1e6).toFixed(1)+' mln';if(Math.abs(n)>=1e3)return(n/1e3).toFixed(0)+' tys.';return n.toFixed(0);}
@@ -598,15 +669,16 @@ function bindEvents(){
       document.querySelectorAll('.ko-panel').forEach(p=>p.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('panel-'+tab.dataset.tab)?.classList.add('active');
-      if(lastResults)setTimeout(()=>{chartNominal?.resize();chartReal?.resize();},50);
+      if(lastResults)setTimeout(()=>{chartNominal?.resize();chartReal?.resize();chartIKE?.resize();},50);
     });
   });
   document.getElementById('ko-detail-select')?.addEventListener('change',e=>{
     if(lastResults)renderMonthlyTable(e.target.value,lastResults);
   });
+  document.querySelectorAll('input[name="ike-mode"]').forEach(r=>{r.addEventListener('change',runCalculation);});
   let debounce;
   document.getElementById('ko-app')?.addEventListener('input',e=>{
-    if(e.target.closest('#ko-scenario-tbody')||e.target.closest('#ko-uniform-inputs')||e.target.id==='ko-bond-count'||e.target.id==='ko-tax'){
+    if(e.target.closest('#ko-scenario-tbody')||e.target.closest('#ko-uniform-inputs')||e.target.id==='ko-bond-count'||e.target.id==='ko-tax'||e.target.id==='ike-fee-rate'){
       clearTimeout(debounce);debounce=setTimeout(runCalculation,600);
     }
   });
@@ -634,11 +706,15 @@ function getParams(){
 function runCalculation(){
   const params=getParams();
   lastResults=BondCalculator.calculate(params);
+  const ikeMode=(document.querySelector('input[name="ike-mode"]:checked')?.value)||'eligible';
+  const ikeFeeRate=(parseFloat(document.getElementById('ike-fee-rate')?.value)||0.10)/100;
+  lastIKEResults=BondCalculator.calculate({...params,ikeMode,ikeFeeRate});
   renderHighlights(lastResults);
   renderNominalTable(lastResults);
   renderRealTable(lastResults);
   renderChartNominal(lastResults);
   renderChartReal(lastResults);
+  renderIKETab(lastResults,lastIKEResults);
   const sel=document.getElementById('ko-detail-select')?.value||'ROR';
   renderMonthlyTable(sel,lastResults);
 }
@@ -752,7 +828,66 @@ function resetDefaults(){
   document.getElementById('u-nbp').value          = 3.75;
   document.getElementById('u-wibor').value        = 3.88;
   document.getElementById('u-savings').value      = 3.60;
+  const ikeE=document.getElementById('ike-eligible');if(ikeE)ikeE.checked=true;
+  const ikeF=document.getElementById('ike-fee-rate');if(ikeF)ikeF.value=0.10;
   buildScenarioTable();runCalculation();
+}
+
+function renderIKETab(regularRes,ikeRes){
+  renderIKEHighlights(regularRes,ikeRes);
+  renderIKETable(regularRes,ikeRes);
+  renderChartIKE(regularRes,ikeRes);
+}
+function renderIKEHighlights(regularRes,ikeRes){
+  const el=document.getElementById('ko-ike-highlights');if(!el)return;
+  const yr12=11,initial=regularRes.annual.initialValue;
+  let html='';
+  for(const k of BOND_KEYS){
+    const ikeVal=ikeRes.annual.nominal[k]?.[yr12]||0;
+    const regVal=regularRes.annual.nominal[k]?.[yr12]||0;
+    const diff=ikeVal-regVal;
+    const pct=((ikeVal-initial)/initial*100).toFixed(1);
+    const cls=diff>0?' ike-gain':diff<0?' ike-loss':'';
+    html+=`<div class="ko-highlight-card${cls}"><div class="hc-label">${BOND_LABELS[k]}</div><div class="hc-value">${fmt(ikeVal)} zł</div><div class="hc-sub">+${pct}% · zysk IKE: <strong>${diff>=0?'+':''}${fmt(diff)}</strong></div></div>`;
+  }
+  el.innerHTML=html;
+}
+function renderIKETable(regularRes,ikeRes){
+  const tbody=document.getElementById('ko-ike-tbody');if(!tbody)return;
+  const {annual}=ikeRes,regA=regularRes.annual;
+  let html='';
+  for(let y=0;y<12;y++){
+    const ikeVals=BOND_KEYS.map(k=>annual.nominal[k]?.[y]||0);
+    const regVals=BOND_KEYS.map(k=>regA.nominal[k]?.[y]||0);
+    const maxV=Math.max(...ikeVals);
+    html+=`<tr><td>Rok ${y+1}</td>${ikeVals.map(v=>`<td class="${v===maxV?'best':''}">${fmt(v)}</td>`).join('')}</tr>`;
+    if((y+1)%4===0||y===11){
+      const diffs=ikeVals.map((v,i)=>v-regVals[i]);
+      const maxD=Math.max(...diffs);
+      html+=`<tr class="ret-row"><td style="font-size:.78rem;color:var(--gray-400)">zysk vs zwykłe</td>${diffs.map(d=>`<td class="${d===maxD?'best':d<0?'worst':''}">${d>=0?'+':''}${fmt(d)}</td>`).join('')}</tr>`;
+    }
+  }
+  tbody.innerHTML=html;
+}
+function renderChartIKE(regularRes,ikeRes){
+  const canvas=document.getElementById('ko-chart-ike');
+  if(!canvas||typeof Chart==='undefined')return;
+  if(chartIKE)chartIKE.destroy();
+  const labels=ikeRes.annual.years.map(y=>`Rok ${y}`);
+  const datasets=BOND_KEYS.map(k=>({
+    label:BOND_LABELS[k]+' (IKE)',data:ikeRes.annual.nominal[k]||[],
+    borderColor:COLORS[k],backgroundColor:COLORS[k]+'22',
+    borderWidth:2,pointRadius:3,pointHoverRadius:6,tension:0.3
+  }));
+  let bestKey=null,bestVal=0;
+  for(const k of BOND_KEYS){const v=regularRes.annual.nominal[k]?.[11]||0;if(v>bestVal){bestVal=v;bestKey=k;}}
+  if(bestKey)datasets.push({
+    label:BOND_LABELS[bestKey]+' (zwykłe, bez IKE)',data:regularRes.annual.nominal[bestKey]||[],
+    borderColor:COLORS[bestKey],backgroundColor:'transparent',
+    borderWidth:2,borderDash:[6,3],pointRadius:2,pointHoverRadius:5,tension:0.3
+  });
+  chartIKE=new Chart(canvas,{type:'line',data:{labels,datasets},options:chartOptions('Wartość IKE (zł)',ikeRes.annual.initialValue)});
+  renderLegend('ko-legend-ike',chartIKE);
 }
 
 function init(){buildScenarioTable();bindEvents();runCalculation();}

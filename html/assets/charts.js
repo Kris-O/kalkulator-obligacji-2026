@@ -38,10 +38,12 @@
     updated: null,
   };
 
-  let lastResults = null;
-  let chartNominal = null;
-  let chartReal    = null;
-  let scenarioMode = 'uniform'; // 'uniform' | 'yearly'
+  let lastResults    = null;
+  let lastIKEResults = null;
+  let chartNominal   = null;
+  let chartReal      = null;
+  let chartIKE       = null;
+  let scenarioMode   = 'uniform'; // 'uniform' | 'yearly'
 
   // ── Domyślne wartości roczne ────────────────────────────────
   const DEFAULTS_YEARLY = {
@@ -119,6 +121,7 @@
           setTimeout(() => {
             chartNominal?.resize();
             chartReal?.resize();
+            chartIKE?.resize();
           }, 50);
         }
       });
@@ -132,11 +135,17 @@
       });
     }
 
+    // IKE: zmiana trybu lub opłaty → przelicz
+    document.querySelectorAll('input[name="ike-mode"]').forEach(r => {
+      r.addEventListener('change', runCalculation);
+    });
+
     // Przelicz przy każdej zmianie pola formularza (debounce)
     let debounceTimer;
     document.getElementById('ko-app')?.addEventListener('input', e => {
       if (e.target.closest('#ko-scenario-tbody') || e.target.closest('#ko-uniform-inputs') ||
-          e.target.id === 'ko-bond-count' || e.target.id === 'ko-tax') {
+          e.target.id === 'ko-bond-count' || e.target.id === 'ko-tax' ||
+          e.target.id === 'ike-fee-rate') {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(runCalculation, 600);
       }
@@ -180,12 +189,19 @@
   // ── Główna kalkulacja + render ───────────────────────────────
   function runCalculation() {
     const params = getParams();
-    lastResults = BondCalculator.calculate(params);
+    lastResults  = BondCalculator.calculate(params);
+
+    // IKE — oblicz równolegle z parametrami z zakładki IKE
+    const ikeMode    = document.querySelector('input[name="ike-mode"]:checked')?.value || 'eligible';
+    const ikeFeeRate = (parseFloat(document.getElementById('ike-fee-rate')?.value) || 0.10) / 100;
+    lastIKEResults   = BondCalculator.calculate({ ...params, ikeMode, ikeFeeRate });
+
     renderHighlights(lastResults);
     renderNominalTable(lastResults);
     renderRealTable(lastResults);
     renderChartNominal(lastResults);
     renderChartReal(lastResults);
+    renderIKETab(lastResults, lastIKEResults);
     const detailKey = document.getElementById('ko-detail-select')?.value || 'ROR';
     renderMonthlyTable(detailKey, lastResults);
   }
@@ -465,8 +481,113 @@
     document.getElementById('u-nbp').value          = 5.75;
     document.getElementById('u-wibor').value        = 5.90;
     document.getElementById('u-savings').value      = 5.00;
+    const ikeEligible = document.getElementById('ike-eligible');
+    if (ikeEligible) ikeEligible.checked = true;
+    const ikeFeeEl = document.getElementById('ike-fee-rate');
+    if (ikeFeeEl) ikeFeeEl.value = 0.10;
     buildScenarioTable();
     runCalculation();
+  }
+
+  // ── IKE: render zakładki ─────────────────────────────────────
+  function renderIKETab(regularRes, ikeRes) {
+    renderIKEHighlights(regularRes, ikeRes);
+    renderIKETable(regularRes, ikeRes);
+    renderChartIKE(regularRes, ikeRes);
+  }
+
+  function renderIKEHighlights(regularRes, ikeRes) {
+    const container = document.getElementById('ko-ike-highlights');
+    if (!container) return;
+    const yr12    = 11;
+    const initial = regularRes.annual.initialValue;
+    let html = '';
+    for (const k of BOND_KEYS) {
+      const ikeVal = ikeRes.annual.nominal[k]?.[yr12]     || 0;
+      const regVal = regularRes.annual.nominal[k]?.[yr12] || 0;
+      const diff   = ikeVal - regVal;
+      const ikeGainPct = ((ikeVal - initial) / initial * 100).toFixed(1);
+      const cls = diff > 0 ? ' ike-gain' : diff < 0 ? ' ike-loss' : '';
+      html += `<div class="ko-highlight-card${cls}">
+        <div class="hc-label">${BOND_LABELS[k]}</div>
+        <div class="hc-value">${fmt(ikeVal)} zł</div>
+        <div class="hc-sub">+${ikeGainPct}% · zysk IKE: <strong>${diff >= 0 ? '+' : ''}${fmt(diff)}</strong></div>
+      </div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function renderIKETable(regularRes, ikeRes) {
+    const tbody = document.getElementById('ko-ike-tbody');
+    if (!tbody) return;
+    const { annual } = ikeRes;
+    const regAnnual  = regularRes.annual;
+    let html = '';
+    for (let y = 0; y < 12; y++) {
+      const ikeVals = BOND_KEYS.map(k => annual.nominal[k]?.[y]    || 0);
+      const regVals = BOND_KEYS.map(k => regAnnual.nominal[k]?.[y] || 0);
+      const maxIKE  = Math.max(...ikeVals);
+      html += `<tr>
+        <td>Rok ${y + 1}</td>
+        ${ikeVals.map(v => `<td class="${v === maxIKE ? 'best' : ''}">${fmt(v)}</td>`).join('')}
+      </tr>`;
+      if ((y + 1) % 4 === 0 || y === 11) {
+        const diffs = ikeVals.map((v, i) => v - regVals[i]);
+        const maxD  = Math.max(...diffs);
+        html += `<tr class="ret-row">
+          <td style="font-size:.78rem;color:var(--gray-400)">zysk vs zwykłe</td>
+          ${diffs.map(d => `<td class="${d === maxD ? 'best' : d < 0 ? 'worst' : ''}">${d >= 0 ? '+' : ''}${fmt(d)}</td>`).join('')}
+        </tr>`;
+      }
+    }
+    tbody.innerHTML = html;
+  }
+
+  function renderChartIKE(regularRes, ikeRes) {
+    const canvas = document.getElementById('ko-chart-ike');
+    if (!canvas || typeof Chart === 'undefined') return;
+    if (chartIKE) chartIKE.destroy();
+
+    const labels = ikeRes.annual.years.map(y => `Rok ${y}`);
+
+    // IKE bonds — linie ciągłe
+    const datasets = BOND_KEYS.map(k => ({
+      label:           BOND_LABELS[k] + ' (IKE)',
+      data:            ikeRes.annual.nominal[k] || [],
+      borderColor:     COLORS[k],
+      backgroundColor: COLORS[k] + '22',
+      borderWidth:     2,
+      pointRadius:     3,
+      pointHoverRadius:6,
+      tension:         0.3,
+    }));
+
+    // Najlepsza obligacja zwykła — linia przerywana dla porównania
+    let bestKey = null, bestVal = 0;
+    for (const k of BOND_KEYS) {
+      const v = regularRes.annual.nominal[k]?.[11] || 0;
+      if (v > bestVal) { bestVal = v; bestKey = k; }
+    }
+    if (bestKey) {
+      datasets.push({
+        label:           BOND_LABELS[bestKey] + ' (zwykłe, bez IKE)',
+        data:            regularRes.annual.nominal[bestKey] || [],
+        borderColor:     COLORS[bestKey],
+        backgroundColor: 'transparent',
+        borderWidth:     2,
+        borderDash:      [6, 3],
+        pointRadius:     2,
+        pointHoverRadius:5,
+        tension:         0.3,
+      });
+    }
+
+    chartIKE = new Chart(canvas, {
+      type: 'line',
+      data: { labels, datasets },
+      options: chartOptions('Wartość nominalna IKE (zł)', ikeRes.annual.initialValue),
+    });
+    renderLegend('ko-legend-ike', chartIKE);
   }
 
   // ── Formatowanie liczb ───────────────────────────────────────
