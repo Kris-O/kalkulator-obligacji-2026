@@ -1,0 +1,23 @@
+#!/bin/sh
+
+PROJECT_NAME="kalkulator-obligacji-2026"
+OBSIDIAN_SCRIPT="C:\\Users\\User\\Documents\\Obsidian Vault\\Narzędzia AI\\scripts\\append_ai_log.ps1"
+
+COMMIT_MSG=$(git log -1 --pretty=%s)
+CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD | tr '\n' ',' | sed 's/,$//')
+
+if [ -z "$CHANGED_FILES" ]; then
+  CHANGED_FILES="brak"
+fi
+
+powershell -NoProfile -ExecutionPolicy Bypass -File "$OBSIDIAN_SCRIPT" \
+  -Project "$PROJECT_NAME" \
+  -Agent "git-hook" \
+  -Summary "Auto-log po commit: $COMMIT_MSG" \
+  -ChangedFiles "$CHANGED_FILES" \
+  -Tests "n/a (post-commit hook)" \
+  -NextSteps "sprawdź CI run dla nowego commita" \
+  -ApiKey "$OBSIDIAN_API_KEY" >/dev/null 2>&1 || true
+
+exit 0
+
